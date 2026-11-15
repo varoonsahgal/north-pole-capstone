@@ -1,0 +1,91 @@
+<!-- title: Present to Santa | nav: guides | desc: Presentation guidelines for the capstone: a ten-minute architecture story for a leadership audience. -->
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Mission 2, goal 10</span>
+  <h1>Present to <em>Santa</em></h1>
+  <p class="lead">Teams of four or five. Eight to ten minutes. A leadership audience. Think "architecture review", not "tutorial".</p>
+  {{hills}}
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>What they want to hear</h2>
+    <p>Your goal is not to prove that you typed Terraform correctly. Your goal is to tell the story of how you <b>designed, built, automated and deployed</b> a cloud application, and to show that you understand the architecture, the decisions and the problems.</p>
+    <div class="grid two">
+      <div class="callout win"><b class="t">Sounds like an engineering design</b><p>"We put the containers in three zones so one data centre failing does not take the app down."</p></div>
+      <div class="callout warn"><b class="t">Sounds like reading a tutorial</b><p>"Then we clicked Create, then we typed the name, then we clicked Next."</p></div>
+    </div>
+    <p>This outline is a framework, not a script. Change it to fit your story.</p>
+  </section>
+
+  <section class="paper">
+    <h2>The outline</h2>
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>Slide</th><th>Time</th><th>The point</th></tr>
+      <tr><td>1</td><td><b>Title and outcome</b></td><td>0:45</td><td>Team name, members, and one sentence that says what you built.</td></tr>
+      <tr><td>2</td><td><b>Architecture diagram</b></td><td>1:15</td><td>The anchor of your talk. Someone should understand your design from this slide alone.</td></tr>
+      <tr><td>3</td><td><b>Who owned what</b></td><td>1:00</td><td>Each person names their part. Leadership looks for collaboration.</td></tr>
+      <tr><td>4</td><td><b>The gift API</b></td><td>1:00</td><td>Why API Gateway, Lambda and S3. The error you hit and how you found it.</td></tr>
+      <tr><td>5</td><td><b>The container</b></td><td>0:45</td><td>Decisions: two-stage build, small image, base images from public ECR.</td></tr>
+      <tr><td>6</td><td><b>The pipeline</b></td><td>1:00</td><td>What happens between <code>git push</code> and a live app.</td></tr>
+      <tr><td>7</td><td><b>ECS</b></td><td>0:45</td><td>Why Fargate. How traffic reaches a container. What stops it.</td></tr>
+      <tr><td>8</td><td><b>Kubernetes</b></td><td>0:45</td><td>What was the same, what was different. If you did not finish, say how far you got.</td></tr>
+      <tr><td>9</td><td><b>Terraform</b></td><td>1:00</td><td>The value of code: shared state, no secrets, rebuild from nothing.</td></tr>
+      <tr><td>10</td><td><b>Demo</b></td><td>1:00</td><td>Push a change. Show it arrive. Keep a recording as a backup.</td></tr>
+      <tr><td>11</td><td><b>Hardest problems</b></td><td>1:00</td><td>Two or three, each told as: we saw, we thought, it was, we fixed.</td></tr>
+      <tr><td>12</td><td><b>With more time</b></td><td>0:30</td><td>How you would make this production-ready.</td></tr>
+    </table></div>
+  </section>
+
+  <section class="paper">
+    <h2>Slide by slide</h2>
+    <h3>1 · Title and one-sentence outcome</h3>
+    <p>Keep it brutally simple. For example:</p>
+    <div class="callout"><p><i>"We built a serverless gift API, put a React app in a container, deployed it to ECS with Terraform, automated delivery with CodePipeline, and extended the same pipeline to Kubernetes."</i></p></div>
+    <p>Leave out: step lists, Dockerfile screenshots, walls of Terraform.</p>
+
+    <h3>2 · Architecture diagram</h3>
+    <p>Draw your own. It should show the app, the image and registry, the API (API Gateway, Lambda, S3), the pipeline, ECS with its load balancer, EKS, and Terraform holding it together. Open with something like: <i>"This is our architecture, end to end. We built every part of it except the React app."</i></p>
+
+    <h3>3 · Roles and ownership</h3>
+    <p>One sentence each: <i>"I owned the API." "I owned the image and the pipeline." "I owned ECS and the load balancer." "I owned Terraform and shared state."</i> Keep it crisp.</p>
+
+    <h3>4 · The gift API</h3>
+    <p>Explain the idea, not the clicks: API Gateway is the public address, Lambda holds the logic, S3 holds the data. Then tell the debugging story. Leadership loves a learning moment: what the symptom was, where you looked, what it turned out to be.</p>
+
+    <h3>5 · The container</h3>
+    <p>Talk about decisions: why two stages, how big the final image is, how the app is checked for health, how you avoided Docker Hub rate limits, how you handled CORS once the app called the API. Show three or four lines of Dockerfile at most.</p>
+
+    <h3>6 · The pipeline</h3>
+    <p>Tell the automation story: a commit starts the pipeline, CodeBuild builds and pushes the image, the deploy stages roll it out. A line that lands well: <i>"After the first deployment, nobody on the team deployed by hand again."</i></p>
+
+    <h3>7 · ECS</h3>
+    <p>Why Fargate (no servers to manage). The difference between a task definition and a service. How the load balancer finds healthy containers. Why the containers accept traffic only from the load balancer.</p>
+
+    <h3>8 · Kubernetes</h3>
+    <p>Use your comparison table from goal 8. Mention the two layers of permission (IAM and Kubernetes). If you did not finish, say so plainly: <i>"We completed the cluster and a manual deployment. What remains is the pipeline step, and here is how we would do it."</i></p>
+
+    <h3>9 · Terraform</h3>
+    <p>Focus on value, not file size: the state is shared and locked, there are no credentials in the repository, and you proved the code by destroying everything and rebuilding it.</p>
+
+    <h3>10 · Demo</h3>
+    <p>Thirty to sixty seconds. Show the app, change the banner, push, show the pipeline running, show the new banner. Do not scroll through logs.</p>
+
+    <h3>11 · Challenges</h3>
+    <p>Pick two or three from your captain's log. Good candidates: unhealthy targets behind the load balancer, the malformed API response, CORS, missing permissions on the build role, Terraform and the pipeline fighting over the service, getting the build into the Kubernetes cluster.</p>
+
+    <h3>12 · What you would improve</h3>
+    <p>Show that you can see further: private subnets, HTTPS with a real domain, automated tests in the pipeline, autoscaling, dashboards and alarms, Terraform applied from the pipeline with an approval step, smaller permissions for the build role.</p>
+    <p>End cleanly: <i>"That is how we would take this to production."</i></p>
+  </section>
+
+  <section class="paper">
+    <h2>🎤 Delivery tips</h2>
+    <ul>
+      <li><b>Everyone speaks once.</b> No silent team members.</li>
+      <li><b>No slide has more than about twelve words.</b> Diagrams beat text.</li>
+      <li><b>Appoint a timekeeper,</b> and rehearse once with a clock running.</li>
+      <li><b>Record your demo</b> in advance. Live demos fail at the worst moment.</li>
+      <li><b>Speak to executives:</b> architecture, decisions, problems, value.</li>
+      <li><b>Clean up afterwards.</b> The <a href="cleanup.html">cleanup guide</a> has the order.</li>
+    </ul>
+  </section>
+</div>

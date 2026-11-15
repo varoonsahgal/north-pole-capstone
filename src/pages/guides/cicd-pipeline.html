@@ -1,0 +1,145 @@
+<!-- title: CI/CD Pipeline | nav: guides | desc: Connect GitHub to AWS, build a Docker image with CodeBuild and orchestrate it with CodePipeline. -->
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Mission 2, goal 6</span>
+  <h1>The <em>Pipeline</em></h1>
+  <p class="lead">Every push to GitHub builds a fresh image and stores it in ECR, with no elf involved.</p>
+  {{hills}}
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>The plan</h2>
+    <div class="arch">
+      <div class="node"><span class="ico">🐙</span>GitHub<small>your repo</small></div><div class="arrow">→</div>
+      <div class="node au"><span class="ico">🤝</span>Connection<small>AWS may read the repo</small></div><div class="arrow">→</div>
+      <div class="node au"><span class="ico">🚚</span>CodePipeline<small>Source → Build</small></div><div class="arrow">→</div>
+      <div class="node au"><span class="ico">🔨</span>CodeBuild<small>runs buildspec.yml</small></div><div class="arrow">→</div>
+      <div class="node go"><span class="ico">📦</span>ECR<small>new image</small></div>
+    </div>
+    <p><b>Before you start</b> you need: your team's GitHub repository with a working <code>Dockerfile</code> in it, and an ECR repository named <code>[[TEAM]]-sleigh-list</code>.</p>
+    <p>This guide ends with images arriving in ECR. Rolling them out to ECS is the <a href="deploy-fargate.html">next guide</a>.</p>
+    <div class="callout"><p>The AWS console changes often. If a button is named slightly differently from this guide, look for the closest match and carry on.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">1</div><h2>Write the buildspec</h2></div>
+    <p>CodeBuild starts every build on a brand-new, empty machine. A file named <code>buildspec.yml</code> at the top of your repository tells it what to do. Create it in your workshop:</p>
+    <code-block lang="yaml" file="buildspec.yml">
+version: 0.2
+
+# These three variables are set on the CodeBuild project (step 3):
+#   AWS_ACCOUNT_ID, IMAGE_REPO_NAME, CONTAINER_NAME
+
+phases:
+  pre_build:
+    commands:
+      - REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPO_URI=$REGISTRY/$IMAGE_REPO_NAME
+      # Tag every image with the short git commit, so we always know what is running
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - echo "Logging in to ECR..."
+      - aws ecr get-login-password | docker login --username AWS --password-stdin $REGISTRY
+  build:
+    commands:
+      - echo "Building $REPO_URI:$IMAGE_TAG"
+      - docker build --build-arg BUILD_ID=$IMAGE_TAG -t $REPO_URI:$IMAGE_TAG -t $REPO_URI:latest .
+  post_build:
+    commands:
+      - docker push $REPO_URI:$IMAGE_TAG
+      - docker push $REPO_URI:latest
+    </code-block>
+    <div class="table-wrap"><table>
+      <tr><th>Phase</th><th>What happens</th></tr>
+      <tr><td><code>pre_build</code></td><td>Work out the image address and sign Docker in to ECR. These are the same commands you typed in Mission 1.</td></tr>
+      <tr><td><code>build</code></td><td>Build the image, with two tags: the commit and <code>latest</code>. The commit is also passed in as <code>BUILD_ID</code>, which the app shows in its footer.</td></tr>
+      <tr><td><code>post_build</code></td><td>Push both tags.</td></tr>
+    </table></div>
+    <p>Commit and push it:</p>
+    <code-block lang="bash">
+git add buildspec.yml
+git commit -m "Add buildspec"
+git push
+    </code-block>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">2</div><h2>Connect AWS to GitHub</h2></div>
+    <p>AWS needs permission to read your repository and to be told when it changes. That permission is a <b>connection</b>. The teammate who <b>owns the GitHub repository</b> should do this step, signed in to GitHub in the same browser.</p>
+    <ol class="do">
+      <li>Open <a href="https://us-west-2.console.aws.amazon.com/codesuite/settings/connections?region=us-west-2" target="_blank" rel="noopener">Developer Tools → Settings → Connections</a> and choose <b>Create connection</b>.</li>
+      <li>Select <b>GitHub</b>. <b>Connection name:</b> <code>[[TEAM]]-github</code>. Choose <b>Connect to GitHub</b>.
+        <shot src="c2-connection-new.webp" alt="Create a connection page with provider choices including GitHub" caption="Select GitHub (the page opens with Bitbucket selected)."></shot>
+      </li>
+      <li>GitHub asks you to authorize the <b>AWS Connector for GitHub</b>. Approve it.</li>
+      <li>Back on the AWS page, choose <b>Install a new app</b>. Pick your GitHub account, select <b>Only select repositories</b>, choose your team's repository, and install.</li>
+      <li>Choose <b>Connect</b>. The connection's status should become <b>Available</b>.</li>
+    </ol>
+    <div class="callout warn">
+      <b class="t">If the status says Pending</b>
+      <p>A pending connection cannot be used. Select it and choose <b>Update pending connection</b> to finish the GitHub approval. Connections created by Terraform or the CLI always start as Pending.</p>
+    </div>
+    <shot src="c2-connection-pending.webp" alt="Connections list showing a GitHub connection with status Pending" caption="Pending means a human still has to approve it on the GitHub side."></shot>
+    <div class="callout why"><p><b>Why "only select repositories"?</b> Least privilege again. AWS needs to read one repository, so let it read one repository.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">3</div><h2>Create the pipeline (and the build project inside it)</h2></div>
+    <ol class="do">
+      <li>Open <a href="https://us-west-2.console.aws.amazon.com/codesuite/codepipeline/pipeline/new?region=us-west-2" target="_blank" rel="noopener">CodePipeline → Create pipeline</a>.</li>
+      <li>On <b>Choose creation option</b> select <b>Build custom pipeline</b>, then <b>Next</b>.
+        <shot src="c2-pipeline-new.webp" alt="CodePipeline creation options: Deployment, Continuous Integration, Automation and Build custom pipeline" caption="Choose 'Build custom pipeline'. The templates hide the parts you are here to learn."></shot>
+      </li>
+      <li><b>Pipeline settings.</b> Name: <code>[[TEAM]]-pipeline</code>. Keep <b>New service role</b>. Next.</li>
+      <li><b>Source stage.</b> Source provider: <b>GitHub (via GitHub App)</b>. Choose your connection, your repository, and the branch <code>main</code>. Next.</li>
+      <li><b>Build stage.</b> Choose <b>Other build providers</b>, then <b>AWS CodeBuild</b>, then <b>Create project</b>. A second window opens. Fill it in like this:
+        <div class="table-wrap"><table>
+          <tr><th>Setting</th><th>Value</th></tr>
+          <tr><td>Project name</td><td><code>[[TEAM]]-build</code></td></tr>
+          <tr><td>Environment image</td><td>Managed image, Amazon Linux, Standard runtime, the newest <code>amazonlinux-x86_64-standard</code> image</td></tr>
+          <tr><td>Service role</td><td>New service role, named <code>[[TEAM]]-codebuild-role</code></td></tr>
+          <tr><td>Additional configuration → <b>Privileged</b></td><td><b>Turn it on.</b> Without it, <code>docker build</code> cannot run.</td></tr>
+          <tr><td>Additional configuration → Environment variables</td><td><code>AWS_ACCOUNT_ID</code> = your 12-digit account number<br><code>IMAGE_REPO_NAME</code> = <code>[[TEAM]]-sleigh-list</code><br><code>CONTAINER_NAME</code> = <code>sleigh-list</code></td></tr>
+          <tr><td>Buildspec</td><td>Use a buildspec file</td></tr>
+        </table></div>
+        Choose <b>Continue to CodePipeline</b>. Back in the wizard, choose Next.
+      </li>
+      <li><b>Test stage:</b> skip it. <b>Deploy stage:</b> skip it for now. Review, then <b>Create pipeline</b>.</li>
+    </ol>
+    <shot src="c2-codebuild-new.webp" alt="The Create build project form with project name, source and environment sections" caption="The build project form. The Privileged switch and the environment variables are under 'Additional configuration' in the Environment section."></shot>
+    <p>The pipeline starts by itself. The Source stage should go green. The Build stage will probably go <b>red</b>. Good. Go and read why.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">4</div><h2>Read the build log and fix the permissions</h2></div>
+    <p>In the failed Build stage choose <b>View details</b> or <b>View logs</b>. Scroll to the first error. It will be about ECR, and it will contain the words <code>not authorized</code>.</p>
+    <div class="callout grinch">
+      <p>The build runs as <code>[[TEAM]]-codebuild-role</code>. The console gave that role enough rights to write logs and fetch the source, and nothing else. It may not sign in to ECR or push to it.</p>
+    </div>
+    <ol class="do">
+      <li>Open <a href="https://us-east-1.console.aws.amazon.com/iam/home#/roles" target="_blank" rel="noopener">IAM → Roles</a> and find <code>[[TEAM]]-codebuild-role</code>.</li>
+      <li>Choose <b>Add permissions → Attach policies</b>.</li>
+      <li>Attach <code>AmazonEC2ContainerRegistryPowerUser</code>.</li>
+      <li>Back in the pipeline choose <b>Release change</b> to run it again.</li>
+    </ol>
+    <p>This time both stages go green, and a new image appears in your ECR repository with two tags: <code>latest</code> and a seven-character commit.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">5</div><h2>Prove it</h2></div>
+    <ol class="do">
+      <li>In your workshop, change <code>BANNER</code> in <code>src/config.js</code>.</li>
+      <li>Commit and push.</li>
+      <li>Watch the pipeline start within a few seconds, without anyone clicking anything.</li>
+      <li>Check ECR for an image tagged with your new commit.</li>
+    </ol>
+    <div class="callout win"><p>You have continuous integration: every commit becomes a tested, stored, traceable image. Next, make the pipeline deliver it: <a href="deploy-fargate.html">Deploy to Fargate</a>.</p></div>
+    <h3>When builds fail</h3>
+    <div class="table-wrap"><table>
+      <tr><th>The log says</th><th>It means</th></tr>
+      <tr><td><code>Cannot connect to the Docker daemon</code></td><td>Privileged mode is off. Edit the project's environment and turn it on.</td></tr>
+      <tr><td><code>YAML_FILE_ERROR</code> or "buildspec.yml not found"</td><td>The file is missing from the branch, is not at the top level, or has an indentation mistake. YAML uses spaces, never tabs.</td></tr>
+      <tr><td><code>not authorized to perform: ecr:...</code></td><td>The CodeBuild role is missing the ECR policy (step 4).</td></tr>
+      <tr><td><code>name unknown: The repository ... does not exist</code></td><td><code>IMAGE_REPO_NAME</code> does not match your ECR repository's name, or <code>AWS_ACCOUNT_ID</code> is wrong.</td></tr>
+      <tr><td><code>toomanyrequests</code> from Docker Hub</td><td>Use base images from <code>public.ecr.aws</code> in your Dockerfile.</td></tr>
+    </table></div>
+  </section>
+</div>

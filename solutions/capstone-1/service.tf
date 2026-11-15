@@ -1,0 +1,13 @@
+# The service keeps 3 copies of our task running at all times
+resource "aws_ecs_service" "app" {
+  name            = "${var.team}-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  launch_type     = "FARGATE"
+  desired_count   = 3
+
+  network_configuration {
+    subnets          = data.aws_subnets.default.ids
+    assign_public_ip = true # needed so the task can pull its image from ECR
+  }
+}

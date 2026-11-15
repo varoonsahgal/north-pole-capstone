@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Gift API · North Pole Cloud Capstone</title>
+<meta name="description" content="Build an API with S3, Lambda and API Gateway, step by step with screenshots. Contains one deliberate mistake.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="guides" data-root="../">
+<canvas id="snow" aria-hidden="true"></canvas>
+<header class="topbar">
+  <a class="brand" href="../index.html"><span aria-hidden="true">🎄</span> North Pole <b>Cloud Capstone</b></a>
+  <nav aria-label="Main"><a href="../index.html">Home</a><a href="../capstone-1.html">Mission 1</a><a href="../capstone-2.html">Mission 2</a><a href="../guides/index.html" class="on">Field Guides</a></nav>
+  <div class="tools">
+    <button id="team-chip" class="chip" type="button" title="Change team">🦌 <span id="team-chip-name">Pick your team</span></button>
+    <button id="snow-toggle" class="chip icon" type="button" aria-pressed="true" title="Toggle snow">❄️</button>
+  </div>
+</header>
+<div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Mission 2, goals 2 and 3</span>
+  <h1>The <em>Gift API</em></h1>
+  <p class="lead">A web address that returns the gift list from a file in S3, using a Lambda function and API Gateway. No servers, and one trap.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/><path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/></svg>
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>The plan</h2>
+    <div class="arch">
+      <div class="node"><span class="ico">🌍</span>Browser</div><div class="arrow">→</div>
+      <div class="node au"><span class="ico">🚪</span>API Gateway<small>the public address</small></div><div class="arrow">→</div>
+      <div class="node au"><span class="ico">⚡</span>Lambda<small>a few lines of Python</small></div><div class="arrow">→</div>
+      <div class="node"><span class="ico">🪣</span>S3<small>wishlist.json</small></div>
+    </div>
+    <div class="table-wrap"><table>
+      <tr><th>Service</th><th>Its job here</th></tr>
+      <tr><td><b>S3</b></td><td>Stores the file. The bucket stays private.</td></tr>
+      <tr><td><b>Lambda</b></td><td>Runs your code only when someone asks, and bills by the millisecond. It reads the file.</td></tr>
+      <tr><td><b>API Gateway</b></td><td>Gives the function a public HTTPS address and turns web requests into function calls.</td></tr>
+    </table></div>
+    <div class="callout grinch">
+      <b class="t">The Grinch edited this guide</b>
+      <p>You will meet <b>two</b> errors on the way. The first one is explained in the guide. The second one is not: the guide will take you right up to it and then leave you to investigate. That is deliberate.</p>
+    </div>
+    <p>Do everything in <b>us-west-2 (Oregon)</b>.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">1</div><h2>Put the gift list in S3</h2></div>
+    <p>The quickest way is from your workshop terminal, inside your cloned repository:</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+aws s3 mb s3://$TEAM-wishlist-$ACCOUNT
+aws s3 cp data/wishlist.json s3://$TEAM-wishlist-$ACCOUNT/wishlist.json
+echo "Our bucket is: $TEAM-wishlist-$ACCOUNT"</code></pre></div>
+    <p>Write the bucket name down. Then check it in the <a href="https://us-west-2.console.aws.amazon.com/s3/buckets?region=us-west-2" target="_blank" rel="noopener">S3 console</a>:</p>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-s3-object.webp" alt="S3 console showing wishlist.json inside the team bucket"><figcaption>One object, wishlist.json. New buckets are private by default. Leave it that way.</figcaption></figure>
+    <div class="callout why"><p><b>Why the account number in the name?</b> Bucket names are unique across every AWS customer in the world. Adding your account number makes a clash very unlikely.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">2</div><h2>Create the Lambda function</h2></div>
+    <ol class="do">
+      <li>Open the <a href="https://us-west-2.console.aws.amazon.com/lambda/home?region=us-west-2#/create/function" target="_blank" rel="noopener">Lambda console</a> and choose <b>Create function</b>.</li>
+      <li>Keep <b>Author from scratch</b> selected.</li>
+      <li><b>Function name:</b> <code>[[TEAM]]-get-gifts</code></li>
+      <li><b>Runtime:</b> choose the newest <b>Python</b> in the list (for example Python 3.13).</li>
+      <li>Leave everything else alone and choose <b>Create function</b>.</li>
+    </ol>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-lambda-create.webp" alt="Lambda Create function page with Author from scratch selected, function name and runtime fields"><figcaption>Only two fields to fill in: the name and the runtime. Change the runtime from Node.js to Python.</figcaption></figure>
+    <div class="callout look"><p>Read the sentence under <b>Permissions</b> on that page: Lambda creates an execution role that may upload logs. Logs, and nothing else. Remember that.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">3</div><h2>Add the code</h2></div>
+    <p>On the function's page, scroll to <b>Code source</b>. Replace everything in <code>lambda_function.py</code> with this, and put your real bucket name in:</p>
+    <div class="code"><div class="code-head"><span class="code-file">lambda_function.py</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-python">import json
+import boto3
+
+s3 = boto3.client("s3")
+
+BUCKET = "your-bucket-name-here"
+KEY = "wishlist.json"
+
+
+def lambda_handler(event, context):
+    response = s3.get_object(Bucket=BUCKET, Key=KEY)
+    gifts = json.loads(response["Body"].read().decode("utf-8"))
+
+    return {
+        "statusCode": 200,
+        "body": gifts,
+    }</code></pre></div>
+    <p>Choose <b>Deploy</b> (the blue button to the left of the code). Nothing you type takes effect until you deploy.</p>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-lambda-code.webp" alt="Lambda console code editor with the function code and the Deploy and Test buttons"><figcaption>The code editor. Deploy saves your change. Test runs the function.</figcaption></figure>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">4</div><h2>Test it, and meet error number one</h2></div>
+    <ol class="do">
+      <li>Choose <b>Test</b>. The first time, it asks you to create a test event. Give it the name <code>ping</code>, keep the sample JSON, and save.</li>
+      <li>Choose <b>Test</b> again.</li>
+    </ol>
+    <div class="callout grinch">
+      <b class="t">Error one: AccessDenied</b>
+      <p>The result is red, and somewhere in it you will read <code>AccessDenied</code> ... <code>is not authorized to perform: s3:GetObject</code>.</p>
+      <p>This is AWS working correctly. The function runs as its execution role, and that role may only write logs. Nobody has said it may read your bucket.</p>
+    </div>
+    <h3>Fix it: give the role one permission</h3>
+    <ol class="do">
+      <li>On the function page open the <b>Configuration</b> tab, then <b>Permissions</b>.</li>
+      <li>Click the <b>role name</b>. It opens in the IAM console.</li>
+      <li>Choose <b>Add permissions → Create inline policy</b>, switch to the <b>JSON</b> editor, and paste this with your bucket name in it:
+        <div class="code"><div class="code-head"><span class="code-file">Inline policy</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::your-bucket-name-here/wishlist.json"
+    }
+  ]
+}</code></pre></div>
+      </li>
+      <li>Choose <b>Next</b>, name the policy <code>read-wishlist</code>, and create it.</li>
+      <li>Go back to the Lambda tab and choose <b>Test</b> again. Wait ten seconds and retry if it still fails: new permissions take a moment to arrive.</li>
+    </ol>
+    <p>You should now get a green result with <code>"statusCode": 200</code> and all eight gifts.</p>
+    <div class="callout why">
+      <b class="t">Least privilege</b>
+      <p>You could have attached <code>AmazonS3FullAccess</code> and it would have worked. It would also let this function delete every bucket in the account. The policy above allows one action on one object. Give each thing only what it needs.</p>
+    </div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">5</div><h2>Create the API</h2></div>
+    <ol class="do">
+      <li>Open the <a href="https://us-west-2.console.aws.amazon.com/apigateway/main/precreate?region=us-west-2" target="_blank" rel="noopener">API Gateway console</a> and choose <b>Create API</b>.</li>
+      <li>Find <b>REST API</b> (not "REST API Private", and not "HTTP API") and choose <b>Build</b>.
+        <figure class="shot"><img loading="lazy" src="../assets/img/c2-apigw-new.webp" alt="API Gateway &#x27;Choose an API type&#x27; page listing HTTP API, WebSocket API, REST API and REST API Private"><figcaption>Choose the plain REST API: third in the list.</figcaption></figure>
+      </li>
+      <li>Keep <b>New API</b>. <b>API name:</b> <code>[[TEAM]]-gifts-api</code>. Endpoint type: <b>Regional</b>. Choose <b>Create API</b>.</li>
+      <li>Choose <b>Create resource</b>. <b>Resource name:</b> <code>gifts</code>. Leave the rest and choose <b>Create resource</b>.</li>
+      <li>With <code>/gifts</code> selected, choose <b>Create method</b>:
+        <ul>
+          <li><b>Method type:</b> GET</li>
+          <li><b>Integration type:</b> Lambda function</li>
+          <li>Turn <b>Lambda proxy integration</b> <b>on</b></li>
+          <li><b>Lambda function:</b> pick <code>[[TEAM]]-get-gifts</code></li>
+        </ul>
+        Choose <b>Create method</b>.
+      </li>
+    </ol>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-apigw-method.webp" alt="API Gateway Resources page showing /gifts with a GET method and the method execution diagram ending in a Lambda integration"><figcaption>Your API so far: a /gifts resource with a GET method, wired to Lambda with proxy integration.</figcaption></figure>
+    <div class="callout"><p><b>What is proxy integration?</b> API Gateway hands the whole web request to your function, and expects your function to describe the whole web response: status code, headers and body.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">6</div><h2>Deploy the API</h2></div>
+    <p>An API is not reachable until it is <b>deployed</b> to a <b>stage</b>.</p>
+    <ol class="do">
+      <li>Choose <b>Deploy API</b> (top right).</li>
+      <li><b>Stage:</b> New stage. <b>Stage name:</b> <code>prod</code>. Choose <b>Deploy</b>.</li>
+      <li>You land on the Stages page. Copy the <b>Invoke URL</b>.</li>
+    </ol>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-apigw-stage.webp" alt="API Gateway Stages page showing the prod stage and its Invoke URL"><figcaption>The Invoke URL is the base address of your API.</figcaption></figure>
+    <p>Your full address is the Invoke URL plus <code>/gifts</code>:</p>
+    <div class="code output"><div class="code-head"><span class="code-file">Your API address</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-text">https://abc123xyz.execute-api.us-west-2.amazonaws.com/prod/gifts</code></pre></div>
+    <div class="callout warn"><p><b>Remember this later:</b> whenever you change the API itself (a method, a resource, a setting), you must choose <b>Deploy API</b> again. Changes to the Lambda <i>code</i> do not need an API deploy.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">7</div><h2>Open it, and meet error number two</h2></div>
+    <p>Paste your full address into a browser tab.</p>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-api-502.webp" alt="Browser showing the JSON message Internal server error"><figcaption>Not eight gifts.</figcaption></figure>
+    <div class="callout grinch">
+      <b class="t">Error two: this one is yours</b>
+      <p>The Lambda test was green. The API says <code>Internal server error</code>. Both are true at the same time.</p>
+      <p>The guide stops helping here. Work out what is wrong and fix it.</p>
+    </div>
+    <h3>Where to look</h3>
+    <ul>
+      <li>In API Gateway, select the <b>GET</b> method and open its <b>Test</b> tab. Run a test and read the whole log, especially the end.
+        <figure class="shot"><img loading="lazy" src="../assets/img/c2-apigw-test.webp" alt="API Gateway method Test tab with a Test button"><figcaption>The Test tab runs your method and shows every step API Gateway took.</figcaption></figure>
+      </li>
+      <li>Compare what your function returns with what the proxy integration says it expects.</li>
+      <li>The hints for <a href="../capstone-2.html#api">goal 2</a> go one step further each.</li>
+    </ul>
+    <details class="hint solution">
+      <summary>Last resort: show us the answer</summary>
+      <div class="hint-body">
+        <p>The test log ends with <code>Execution failed due to configuration error: Malformed Lambda proxy response</code> and status 502.</p>
+        <p>With proxy integration the <code>body</code> must be a <b>string</b>. The function returns a Python list. Lambda's own test does not care, which is why it was green. Turn the list into a JSON string:</p>
+        <div class="code"><div class="code-head"><span class="code-file">lambda_function.py (the return statement)</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-python">return {
+    "statusCode": 200,
+    "headers": {"Content-Type": "application/json"},
+    "body": json.dumps(gifts),
+}</code></pre></div>
+        <p>Choose <b>Deploy</b> in the Lambda editor, then reload your API address.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">8</div><h2>Let the app call it (CORS)</h2></div>
+    <p>Once the address shows eight gifts in a browser tab, put it into <code>src/config.js</code> as <code>API_URL</code>, rebuild your image, and run it.</p>
+    <p>The app will show a red box. Press <kbd>F12</kbd>, open the <b>Console</b> tab, and you will find a message that mentions <b>CORS</b>.</p>
+    <div class="callout why">
+      <b class="t">CORS in three sentences</b>
+      <p>Your app is served from one website (your load balancer) and asks for data from a different one (your API). Browsers refuse to hand that data to the page unless the second site says "yes, that page may read me". It says so with a response header named <code>Access-Control-Allow-Origin</code>.</p>
+    </div>
+    <p>With proxy integration, the headers come from your function. Add the header next to <code>statusCode</code> in your return value. The value <code>*</code> means "any website may read this", which is fine for a public gift list.</p>
+    <details class="hint solution">
+      <summary>Show the finished function</summary>
+      <div class="hint-body">
+        <div class="code"><div class="code-head"><span class="code-file">lambda_function.py</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-python">import json
+import boto3
+
+s3 = boto3.client("s3")
+
+BUCKET = "your-bucket-name-here"
+KEY = "wishlist.json"
+
+
+def lambda_handler(event, context):
+    response = s3.get_object(Bucket=BUCKET, Key=KEY)
+    gifts = json.loads(response["Body"].read().decode("utf-8"))
+
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+        "body": json.dumps(gifts),
+    }</code></pre></div>
+      </div>
+    </details>
+    <div class="callout"><p><b>What about the "Enable CORS" button in API Gateway?</b> It sets up the answer to a browser's "preflight" question, which is needed for requests such as POST with JSON. A simple GET like yours skips the preflight, so the header from your function is all you need.</p></div>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-app-api.webp" alt="The Sleigh List showing eight gifts loaded from the API"><figcaption>Done: eight gifts, from S3, through Lambda and API Gateway, into your app.</figcaption></figure>
+  </section>
+</div>
+
+<footer class="foot">
+  <p>🎁 Built for the Cloud Foundations cohort · Be kind to the elves: tear down what you build.</p>
+  <p><a href="../guides/cleanup.html">Cleanup guide</a> · <a href="../guides/troubleshooting.html">Grinch field guide</a> · <a href="../instructor.html">Instructor notes</a></p>
+</footer>
+<dialog id="team-dialog">
+  <form method="dialog">
+    <h2>🦌 Which reindeer team are you?</h2>
+    <p>Your instructor assigns the teams. Your pick personalises every command on this site, so teams never step on each other.</p>
+    <div class="team-grid" id="team-grid"></div>
+    <p class="small">Stored only in this browser. You can change it any time from the top bar.</p>
+    <button class="btn ghost" value="cancel">Close</button>
+  </form>
+</dialog>
+<div id="lightbox" hidden><img alt=""></div>
+<script src="../assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy to EKS · North Pole Cloud Capstone</title>
+<meta name="description" content="Create an EKS cluster safely in a shared account, deploy the app with kubectl, then deploy from the pipeline.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="guides" data-root="../">
+<canvas id="snow" aria-hidden="true"></canvas>
+<header class="topbar">
+  <a class="brand" href="../index.html"><span aria-hidden="true">🎄</span> North Pole <b>Cloud Capstone</b></a>
+  <nav aria-label="Main"><a href="../index.html">Home</a><a href="../capstone-1.html">Mission 1</a><a href="../capstone-2.html">Mission 2</a><a href="../guides/index.html" class="on">Field Guides</a></nav>
+  <div class="tools">
+    <button id="team-chip" class="chip" type="button" title="Change team">🦌 <span id="team-chip-name">Pick your team</span></button>
+    <button id="snow-toggle" class="chip icon" type="button" aria-pressed="true" title="Toggle snow">❄️</button>
+  </div>
+</header>
+<div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Mission 2, goals 8 and 9</span>
+  <h1>Deploy to <em>Kubernetes</em></h1>
+  <p class="lead">Create a cluster on Amazon EKS, run your image on it by hand, then teach your pipeline to do it.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/><path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/></svg>
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>ECS and Kubernetes, side by side</h2>
+    <p>Kubernetes solves the same problem as ECS with different words. You already know the ideas.</p>
+    <div class="table-wrap"><table>
+      <tr><th>You want to…</th><th>On ECS you made a…</th><th>On Kubernetes you make a…</th></tr>
+      <tr><td>Describe how to run the container</td><td>Task definition</td><td><b>Pod template</b> (inside a Deployment)</td></tr>
+      <tr><td>Keep three copies running</td><td>Service</td><td><b>Deployment</b></td></tr>
+      <tr><td>Give the copies one stable address</td><td>Load balancer + target group</td><td><b>Service</b> (yes, the word means something else here)</td></tr>
+      <tr><td>Check a copy is alive</td><td>Target group health check</td><td><b>Readiness probe</b></td></tr>
+      <tr><td>Provide the machines</td><td>Fargate, invisible</td><td><b>Nodes</b>: EC2 servers that you can see</td></tr>
+    </table></div>
+    <p>Run every command in this guide from your workshop terminal. <code>kubectl</code> and <code>eksctl</code> are already installed.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">1</div><h2>Create the cluster</h2></div>
+    <div class="callout warn">
+      <b class="t">One person, one cluster, this exact command</b>
+      <p>Left alone, <code>eksctl</code> builds a new private network for each cluster. Four teams doing that would run into the account's network limits and three teams would be stuck. The command below puts your cluster into the default network that is already there.</p>
+    </div>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash"># The three default public subnets, as a comma-separated list
+SUBNETS=$(aws ec2 describe-subnets \
+  --filters Name=default-for-az,Values=true Name=availability-zone,Values=us-west-2a,us-west-2b,us-west-2c \
+  --query 'Subnets[].SubnetId' --output text | tr '\t' ',')
+echo $SUBNETS
+
+eksctl create cluster \
+  --name $TEAM-eks \
+  --region us-west-2 \
+  --vpc-public-subnets $SUBNETS \
+  --nodegroup-name elves \
+  --node-type t3.medium \
+  --nodes 2 \
+  --managed</code></pre></div>
+    <p>This takes <b>about 15 minutes</b>. It creates the Kubernetes control plane, then two worker nodes. Leave this terminal alone, open a second terminal, and keep working on something else (your <code>k8s/</code> files in step 2, for example).</p>
+    <p>When it finishes it says <code>EKS cluster "[[TEAM]]-eks" in "us-west-2" region is ready</code>. Check:</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">kubectl get nodes</code></pre></div>
+    <div class="code output"><div class="code-head"><span class="code-file">What you should see</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-text">NAME                                          STATUS   ROLES    AGE   VERSION
+ip-172-31-26-158.us-west-2.compute.internal   Ready    &lt;none&gt;   9m    v1.34.x-eks-...
+ip-172-31-45-65.us-west-2.compute.internal    Ready    &lt;none&gt;   9m    v1.34.x-eks-...</code></pre></div>
+    <div class="callout"><p><b>What did eksctl do?</b> It wrote two CloudFormation stacks for you, <code>eksctl-[[TEAM]]-eks-cluster</code> and <code>eksctl-[[TEAM]]-eks-nodegroup-elves</code>. If creation fails, the Events tab of those stacks tells you why.</p></div>
+    <details class="hint"><summary>The terminal closed, or the workshop reconnected, while it was creating</summary><div class="hint-body"><p>The cluster keeps building in AWS. Check progress in the CloudFormation console. When both stacks are complete, connect <code>kubectl</code> to it with <code>aws eks update-kubeconfig --name $TEAM-eks</code>.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">2</div><h2>Describe your app for Kubernetes</h2></div>
+    <p>In your repository, create a folder named <code>k8s</code> with two files. Put your real image address in the first one for now (copy it from ECR, including the tag).</p>
+    <div class="code"><div class="code-head"><span class="code-file">k8s/deployment.yaml</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sleigh-list
+  labels:
+    app: sleigh-list
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sleigh-list
+  template:
+    metadata:
+      labels:
+        app: sleigh-list
+    spec:
+      containers:
+        - name: sleigh-list
+          image: 123456789012.dkr.ecr.us-west-2.amazonaws.com/[[TEAM]]-sleigh-list:latest
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi</code></pre></div>
+    <div class="code"><div class="code-head"><span class="code-file">k8s/service.yaml</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: sleigh-list
+spec:
+  type: LoadBalancer # asks AWS for a load balancer in front of the pods
+  selector:
+    app: sleigh-list
+  ports:
+    - port: 80
+      targetPort: 3000</code></pre></div>
+    <div class="callout why">
+      <b class="t">How does the Service find the pods?</b>
+      <p>By <b>labels</b>. The Deployment stamps every pod with <code>app: sleigh-list</code>. The Service's <code>selector</code> says "send traffic to anything wearing that label". Nothing else connects them. If the two do not match exactly, the Service has no pods behind it, and you get a load balancer that answers nothing.</p>
+    </div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">3</div><h2>Deploy by hand</h2></div>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">kubectl apply -f k8s/
+kubectl get pods
+kubectl get service sleigh-list</code></pre></div>
+    <p>Wait until three pods say <code>Running</code> with <code>1/1</code> ready. The service shows a long address under <code>EXTERNAL-IP</code>. Give it a minute or two, then open it with <code>http://</code> in front.</p>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-app-eks.webp" alt="The Sleigh List footer reading &#x27;Served by elf sleigh-list-... on Kubernetes&#x27;"><figcaption>The footer says 'on Kubernetes', and the elf is now a pod name. Ring the bell to meet the other pods.</figcaption></figure>
+    <div class="callout"><p><b>Nodes do not need extra rights to pull your image.</b> The node role that eksctl created can already read from ECR in the same account.</p></div>
+    <h3>Four commands worth knowing</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Command</th><th>When to use it</th></tr>
+      <tr><td><code>kubectl get pods -o wide</code></td><td>What is running, and on which node?</td></tr>
+      <tr><td><code>kubectl describe pod NAME</code></td><td>A pod will not start. Read the Events at the bottom.</td></tr>
+      <tr><td><code>kubectl logs NAME</code></td><td>What did the container print?</td></tr>
+      <tr><td><code>kubectl delete pod NAME</code></td><td>Lose an elf on purpose and watch the Deployment replace it.</td></tr>
+    </table></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">4</div><h2>Why the console cannot see your pods</h2></div>
+    <p>Open your cluster in the <a href="https://us-west-2.console.aws.amazon.com/eks/clusters?region=us-west-2" target="_blank" rel="noopener">EKS console</a> and look at the <b>Resources</b> tab.</p>
+    <figure class="shot"><img loading="lazy" src="../assets/img/c2-eks-console-denied.webp" alt="EKS console Resources tab showing &#x27;Error loading resources&#x27; for pods, deployments and other workloads"><figcaption>'Error loading resources', even though you are an AWS administrator.</figcaption></figure>
+    <p>EKS has two layers of permission. IAM decides who may talk to the cluster. Kubernetes itself decides what they may do inside it. The cluster was created by your <b>workshop's role</b>, so that role is its administrator. Your personal console user has never been introduced.</p>
+    <p>Introduce yourself with an <b>access entry</b>. Each teammate who wants to use the console runs this from the workshop, with their own IAM user name:</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+ME=arn:aws:iam::$ACCOUNT:user/YOUR-IAM-USER-NAME
+
+aws eks create-access-entry --cluster-name $TEAM-eks --principal-arn $ME
+aws eks associate-access-policy --cluster-name $TEAM-eks --principal-arn $ME \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster</code></pre></div>
+    <p>Reload the console page. Your pods appear. This idea comes back in step 6.</p>
+  </section>
+
+  <section class="paper candy">
+    <h2>Now from the pipeline</h2>
+    <p>The build already makes the image. It needs three more things: to know the cluster's name, to be allowed in, and the commands to run.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">5</div><h2>Make the manifest follow the build</h2></div>
+    <p>Every build creates a new image tag, so the image line in <code>deployment.yaml</code> cannot be a fixed value. Replace it with a placeholder that the build will fill in:</p>
+    <div class="code"><div class="code-head"><span class="code-file">k8s/deployment.yaml (one line changes)</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-yaml">image: IMAGE_PLACEHOLDER # the pipeline swaps in the real image address</code></pre></div>
+    <p>Then add this to the end of <code>post_build</code> in your <code>buildspec.yml</code>, after the line that writes <code>imagedefinitions.json</code>:</p>
+    <div class="code"><div class="code-head"><span class="code-file">buildspec.yml (add to the end of post_build)</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-yaml"># Second destination: Kubernetes (only when EKS_CLUSTER_NAME is set)
+- |
+  if [ -n "$EKS_CLUSTER_NAME" ]; then
+    aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME"
+    sed "s|IMAGE_PLACEHOLDER|$REPO_URI:$IMAGE_TAG|" k8s/deployment.yaml | kubectl apply -f -
+    kubectl apply -f k8s/service.yaml
+    kubectl rollout status deployment/sleigh-list --timeout=180s
+  fi</code></pre></div>
+    <div class="table-wrap"><table>
+      <tr><th>Line</th><th>What it does</th></tr>
+      <tr><td><code>update-kubeconfig</code></td><td>Writes the connection details for your cluster on the build machine.</td></tr>
+      <tr><td><code>sed … | kubectl apply -f -</code></td><td>Swaps the placeholder for the image just built, and sends the result to the cluster.</td></tr>
+      <tr><td><code>rollout status</code></td><td>Waits for the new pods to be ready. If they never are, the build fails, and you find out.</td></tr>
+    </table></div>
+    <p>Add the cluster name to the build project: <b>CodeBuild → your project → Edit → Environment → Additional configuration → Environment variables</b>, and add <code>EKS_CLUSTER_NAME</code> = <code>[[TEAM]]-eks</code>.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">6</div><h2>Let the build role in (two locks)</h2></div>
+    <p>If you pushed now, the build would fail. It is the same story as the console in step 4, with one extra lock.</p>
+    <h3>Lock 1 · IAM: may the role find the cluster?</h3>
+    <p>In IAM, open <code>[[TEAM]]-codebuild-role</code>, choose <b>Add permissions → Create inline policy</b>, and use this JSON. Name it <code>describe-eks</code>.</p>
+    <div class="code"><div class="code-head"><span class="code-file">Inline policy</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "eks:DescribeCluster",
+      "Resource": "*"
+    }
+  ]
+}</code></pre></div>
+    <h3>Lock 2 · Kubernetes: does the cluster know the role?</h3>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+BUILD_ROLE=arn:aws:iam::$ACCOUNT:role/$TEAM-codebuild-role
+
+aws eks create-access-entry --cluster-name $TEAM-eks --principal-arn $BUILD_ROLE
+aws eks associate-access-policy --cluster-name $TEAM-eks --principal-arn $BUILD_ROLE \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster</code></pre></div>
+    <div class="callout"><p>If the console created your role inside a path (for example <code>service-role/</code>), copy the role's full ARN from the IAM console instead of building it by hand.</p></div>
+    <details class="hint"><summary>For the curious: a smaller key</summary><div class="hint-body"><p>Cluster admin is more than a deploy job needs. Kubernetes lets you scope access to one namespace: look at <code>AmazonEKSEditPolicy</code> with <code>--access-scope type=namespace,namespaces=default</code>. A good detail for your presentation.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">7</div><h2>Prove it</h2></div>
+    <ol class="do">
+      <li>Commit and push the changed <code>deployment.yaml</code> and <code>buildspec.yml</code>.</li>
+      <li>In the build log, look for <code>deployment "sleigh-list" successfully rolled out</code>.</li>
+      <li>Change the banner, push again, and check <b>both</b> addresses: the ECS load balancer and the Kubernetes one. Same banner, same build label.</li>
+    </ol>
+    <div class="callout win"><p>One push, two orchestrators. You can now say from experience how they differ.</p></div>
+    <div class="table-wrap"><table>
+      <tr><th>The build log says</th><th>It means</th></tr>
+      <tr><td><code>AccessDeniedException … eks:DescribeCluster</code></td><td>Lock 1 is missing.</td></tr>
+      <tr><td><code>You must be logged in to the server</code> or <code>Unauthorized</code></td><td>Lock 2 is missing, or was made for a different role ARN.</td></tr>
+      <tr><td><code>ImagePullBackOff</code> (seen with <code>kubectl get pods</code>)</td><td>The placeholder was not replaced, or the image address has a typo.</td></tr>
+      <tr><td><code>error: timed out waiting for the condition</code></td><td>The new pods never became ready. Run <code>kubectl describe pod</code> and read the Events.</td></tr>
+    </table></div>
+  </section>
+
+  <section class="paper">
+    <h2>🧹 Deleting the cluster</h2>
+    <p>A cluster costs money every hour. When the mission is over, delete things in this order. The order matters: the load balancer was created by Kubernetes, so Kubernetes has to remove it.</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">kubectl delete service sleigh-list
+kubectl delete deployment sleigh-list
+eksctl delete cluster --name $TEAM-eks --region us-west-2</code></pre></div>
+    <p>Deletion takes about ten minutes.</p>
+  </section>
+</div>
+
+<footer class="foot">
+  <p>🎁 Built for the Cloud Foundations cohort · Be kind to the elves: tear down what you build.</p>
+  <p><a href="../guides/cleanup.html">Cleanup guide</a> · <a href="../guides/troubleshooting.html">Grinch field guide</a> · <a href="../instructor.html">Instructor notes</a></p>
+</footer>
+<dialog id="team-dialog">
+  <form method="dialog">
+    <h2>🦌 Which reindeer team are you?</h2>
+    <p>Your instructor assigns the teams. Your pick personalises every command on this site, so teams never step on each other.</p>
+    <div class="team-grid" id="team-grid"></div>
+    <p class="small">Stored only in this browser. You can change it any time from the top bar.</p>
+    <button class="btn ghost" value="cancel">Close</button>
+  </form>
+</dialog>
+<div id="lightbox" hidden><img alt=""></div>
+<script src="../assets/js/site.js"></script>
+</body>
+</html>

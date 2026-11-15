@@ -1,0 +1,364 @@
+<!-- title: Mission 2 · The North Pole Factory | nav: c2 | desc: Team capstone: serverless API, CI/CD pipeline, shared Terraform state and Kubernetes, with hints instead of instructions. -->
+<section class="hero small-hero">
+  <div class="sleigh-fly" aria-hidden="true">🎅🛷🦌🦌🦌</div>
+  <span class="kicker">Mission 2 · You lead · About 10 hours</span>
+  <h1>The North Pole <em>Factory</em></h1>
+  <p class="lead">In Mission 1 you delivered one sleigh by hand. Now build the factory that delivers it for you, every time someone pushes code. This time the page tells you where to go, not how to get there.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/>
+    <path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/>
+  </svg>
+</section>
+
+<div class="wrap with-toc">
+  <aside>
+    <div class="tree-box">
+      <h4>Your team tree</h4>
+      <svg viewBox="0 0 220 300" role="img" aria-label="A Christmas tree with one ornament per goal">
+        <polygon class="star" points="110,6 116,24 135,24 120,35 126,53 110,42 94,53 100,35 85,24 104,24"/>
+        <polygon points="110,40 160,112 60,112" fill="#0f8a5f"/>
+        <polygon points="110,82 178,180 42,180" fill="#0b6e4f"/>
+        <polygon points="110,138 198,258 22,258" fill="#07563d"/>
+        <rect x="96" y="258" width="28" height="30" rx="3" fill="#6b3f1d"/>
+        <circle class="orn c0" data-i="0" cx="110" cy="88" r="9"><title>1 · Claim your repo</title></circle>
+        <circle class="orn c1" data-i="1" cx="92" cy="128" r="9"><title>2 · Gift API</title></circle>
+        <circle class="orn c2" data-i="2" cx="132" cy="140" r="9"><title>3 · App meets API</title></circle>
+        <circle class="orn c3" data-i="3" cx="74" cy="166" r="9"><title>4 · Image in ECR</title></circle>
+        <circle class="orn c4" data-i="4" cx="112" cy="172" r="9"><title>5 · ECS by hand</title></circle>
+        <circle class="orn c0" data-i="5" cx="150" cy="170" r="9"><title>6 · Pipeline</title></circle>
+        <circle class="orn c1" data-i="6" cx="62" cy="226" r="9"><title>7 · Terraform it</title></circle>
+        <circle class="orn c2" data-i="7" cx="100" cy="212" r="9"><title>8 · Kubernetes</title></circle>
+        <circle class="orn c3" data-i="8" cx="140" cy="228" r="9"><title>9 · Pipeline to EKS</title></circle>
+        <circle class="orn c4" data-i="9" cx="176" cy="240" r="9"><title>10 · Tell the story</title></circle>
+      </svg>
+      <div class="count"></div>
+      <p class="small" style="margin:.4em 0 0">Tick a goal below to light an ornament. Light all ten for the star.</p>
+    </div>
+  </aside>
+
+  <main>
+    <div class="team-banner needs-team">
+      <span>🦌 Pick your team so names and commands use your team name.</span>
+      <button type="button" class="pick-team">Pick my team</button>
+    </div>
+
+    <section class="paper candy">
+      <h2>📜 The brief</h2>
+      <p>Santa was impressed. Then he asked three hard questions:</p>
+      <ol>
+        <li><b>"Why is the gift list typed into the code?"</b> The elves in Logistics keep the real list in a file. The app should load it from an <b>API</b>.</li>
+        <li><b>"Why did it take four elves and three hours to change one word?"</b> Changing the app should be as easy as pushing code. A <b>pipeline</b> should build and deploy it.</li>
+        <li><b>"What if we outgrow this?"</b> Mrs. Claus has heard good things about <b>Kubernetes</b>. Show that the same container runs there too.</li>
+      </ol>
+      <h3>What the finished factory looks like</h3>
+      <div class="arch col">
+        <div class="arch-label">The delivery line</div>
+        <div class="arch-row">
+          <div class="node"><span class="ico">🐙</span>GitHub<small>git push</small></div><div class="arrow">→</div>
+          <div class="node au"><span class="ico">🚚</span>CodePipeline<small>notices the push</small></div><div class="arrow">→</div>
+          <div class="node au"><span class="ico">🔨</span>CodeBuild<small>docker build</small></div><div class="arrow">→</div>
+          <div class="node"><span class="ico">📦</span>ECR<small>image store</small></div><div class="arrow">→</div>
+          <div class="node go"><span class="ico">🛷</span>ECS Fargate<small>+ load balancer</small></div><div class="arrow">+</div>
+          <div class="node go"><span class="ico">☸️</span>EKS<small>Kubernetes</small></div>
+        </div>
+        <div class="arch-label">The gift API</div>
+        <div class="arch-row">
+          <div class="node"><span class="ico">🌍</span>The app<small>in a browser</small></div><div class="arrow">→</div>
+          <div class="node au"><span class="ico">🚪</span>API Gateway<small>GET /gifts</small></div><div class="arrow">→</div>
+          <div class="node au"><span class="ico">⚡</span>Lambda<small>reads the file</small></div><div class="arrow">→</div>
+          <div class="node"><span class="ico">🪣</span>S3<small>wishlist.json</small></div>
+        </div>
+        <div class="arch-label">Holding it all together: Terraform, with state shared by the team</div>
+      </div>
+      <h3>How this mission is different</h3>
+      <ul>
+        <li><b>Goals, not steps.</b> Each goal says what "done" looks like. How you get there is your call.</li>
+        <li><b>Hints are wrapped.</b> Each goal has hints inside gift boxes, from a gentle nudge to a strong push. Try for ten honest minutes before you unwrap one. Struggling a little is the point.</li>
+        <li><b>Field guides exist.</b> If a whole area is new to you, the <a href="guides/index.html">field guides</a> walk through it with screenshots. They are a safety net, not the route.</li>
+        <li><b>The Grinch has been busy.</b> Some things will fail on purpose. Each failure is a lesson someone paid for in production.</li>
+      </ul>
+      <div class="callout team">
+        <b class="t">The elf code still applies</b>
+        <p>Everything is named <code>[[TEAM]]-something</code>, everything lives in <code>us-west-2</code>, and no access key ever goes into a file. Keep using your <a href="guides/workshop.html">Santa's Workshop</a> from Mission 1.</p>
+      </div>
+    </section>
+
+    <section class="paper">
+      <h2>🗺️ Plan your ten hours</h2>
+      <p>Ten goals in ten hours does not mean one hour each, and it does not mean four people watching one screen. Split up. Here is one plan that works. Make your own if you prefer.</p>
+      <div class="table-wrap">
+      <table>
+        <tr><th>Hours</th><th>Track A (2 elves)</th><th>Track B (2 elves)</th></tr>
+        <tr><td>0 to 0.5</td><td colspan="2"><b>Together:</b> goal 1. Repo, access for everyone, who owns what.</td></tr>
+        <tr><td>0.5 to 2.5</td><td>Goals 2 and 3: the gift API, then the app calling it</td><td>Goals 4 and 5: image in ECR, running on ECS by hand</td></tr>
+        <tr><td>2.5 to 4.5</td><td colspan="2"><b>Together:</b> goal 6, the pipeline. This is the heart of the mission.</td></tr>
+        <tr><td>4.5 to 7</td><td>Goal 7: Terraform and shared state</td><td>Goal 8: a Kubernetes cluster, app deployed by hand</td></tr>
+        <tr><td>7 to 8.5</td><td colspan="2"><b>Together:</b> goal 9, the pipeline deploys to Kubernetes too.</td></tr>
+        <tr><td>8.5 to 10</td><td colspan="2"><b>Together:</b> goal 10. Slides, rehearsal, cleanup.</td></tr>
+      </table>
+      </div>
+      <div class="callout">
+        <b class="t">Three habits of teams that finish</b>
+        <p><b>Keep a captain's log.</b> For every error: what you saw, what you thought it was, what it really was. Screenshot as you go. Your presentation is built from this log.</p>
+        <p><b>Sync every hour.</b> Two minutes, standing up: what works, what is stuck, what is next.</p>
+        <p><b>Make it work, then make it code.</b> It is fine to build something by hand first to understand it. Goal 7 is where you turn it into Terraform.</p>
+      </div>
+    </section>
+
+    <!-- ============ GOAL 1 ============ -->
+    <section class="paper step" id="repo" data-short="Claim your repo">
+      <div class="step-head"><div class="step-num">1</div><h2>Claim your repo</h2><span class="pill gold">⏱ about 30 min</span></div>
+      <p>A pipeline starts with a repository that your team controls. Make your own copy of the Sleigh List and get everyone working from it.</p>
+      <h3>Done when</h3>
+      <ul>
+        <li>Your team has its own GitHub repository created from the <a href="https://github.com/varoonsahgal/sleigh-list" target="_blank" rel="noopener">sleigh-list template</a>.</li>
+        <li>All four of you can push to it.</li>
+        <li>It is cloned in your workshop, and a small change (your team name in <code>src/config.js</code>) has been pushed from there.</li>
+        <li>You have agreed who owns which goals.</li>
+      </ul>
+      <details class="hint"><summary>Nudge: making the copy</summary><div class="hint-body"><p>On the template's GitHub page there is a green <b>Use this template</b> button. One teammate creates the repository under their own account, then adds the others under <b>Settings → Collaborators</b>.</p></div></details>
+      <details class="hint"><summary>Hint: pushing from the workshop</summary><div class="hint-body"><p>GitHub does not accept your account password on the command line. The owner of the repository creates a <b>fine-grained personal access token</b> (GitHub → Settings → Developer settings) limited to this one repository with <i>Contents: read and write</i>, and uses it as the password when git asks. Treat that token like a password: it never goes in a file in the repo.</p></div></details>
+      <details class="hint"><summary>Hint: avoiding the "who changed my file" problem</summary><div class="hint-body"><p>Commit small and often, and run <code>git pull</code> before you start work. If two tracks need the same file (it will be <code>buildspec.yml</code>), talk first.</p></div></details>
+      <label class="done-row"><input type="checkbox"> Goal 1 done: our repo exists and everyone can push</label>
+    </section>
+
+    <!-- ============ GOAL 2 ============ -->
+    <section class="paper step" id="api" data-short="Build the gift API">
+      <div class="step-head"><div class="step-num">2</div><h2>Build the gift API</h2><span class="pill gold">⏱ about 90 min</span></div>
+      <p>The real gift list is the file <code>data/wishlist.json</code> in your repository. Put it in S3, and make it available to the world through a web address, with no server to look after.</p>
+      <div class="arch">
+        <div class="node"><span class="ico">🌍</span>Browser</div><div class="arrow">→</div>
+        <div class="node au"><span class="ico">🚪</span>API Gateway<small>GET /gifts</small></div><div class="arrow">→</div>
+        <div class="node au"><span class="ico">⚡</span>Lambda<small>[[TEAM]]-get-gifts</small></div><div class="arrow">→</div>
+        <div class="node"><span class="ico">🪣</span>S3 bucket<small>wishlist.json</small></div>
+      </div>
+      <h3>Done when</h3>
+      <ul>
+        <li>Opening <code>https://…execute-api.us-west-2.amazonaws.com/prod/gifts</code> in a browser shows the JSON list of eight gifts.</li>
+        <li>The bucket is <b>private</b>. Only the Lambda function can read the file.</li>
+        <li>You can explain what each of the three services contributes.</li>
+      </ul>
+      <div class="callout grinch">
+        <b class="t">Fair warning</b>
+        <p>The <a href="guides/serverless-api.html">gift API field guide</a> gets you most of the way, and it has a deliberate mistake in it. Your Lambda test will pass and your API will still fail. Finding out why is part of this goal.</p>
+      </div>
+      <details class="hint"><summary>Nudge: my Lambda says AccessDenied</summary><div class="hint-body"><p>A new Lambda function may write logs and nothing else. Who is the function, as far as S3 is concerned? Find its <b>execution role</b> and give it permission to get that one object.</p></div></details>
+      <details class="hint"><summary>Hint: the Lambda test passes but the API returns "Internal server error"</summary><div class="hint-body"><p>The problem is between Lambda and API Gateway, so look there. In API Gateway, open your GET method and use the <b>Test</b> tab. Read the log it prints, right to the last lines. It names the problem exactly.</p></div></details>
+      <details class="hint"><summary>Bigger hint: "Malformed Lambda proxy response"</summary><div class="hint-body"><p>With <i>Lambda proxy integration</i>, API Gateway expects a very particular reply: a <code>statusCode</code>, optional <code>headers</code>, and a <code>body</code> that is a <b>string</b>. Check what type your function's <code>body</code> is. Python has a one-line way to turn a list into a JSON string.</p></div></details>
+      <details class="hint"><summary>Hint: bucket names</summary><div class="hint-body"><p>S3 bucket names are unique across <i>all of AWS</i>, not just your account. <code>[[TEAM]]-wishlist</code> is probably taken. Add your account number to the end.</p></div></details>
+      <label class="done-row"><input type="checkbox"> Goal 2 done: our API returns the gift list</label>
+    </section>
+
+    <!-- ============ GOAL 3 ============ -->
+    <section class="paper step" id="wire" data-short="Connect app and API">
+      <div class="step-head"><div class="step-num">3</div><h2>Connect the app to the API</h2><span class="pill gold">⏱ about 30 min</span></div>
+      <p>Tell the Sleigh List where the API lives, and see eight gifts instead of four.</p>
+      <h3>Done when</h3>
+      <ul>
+        <li>The app shows a green box: <b>📡 Loaded 8 gifts from the North Pole API</b>.</li>
+        <li>You can explain what CORS is to someone who has never heard of it.</li>
+      </ul>
+      <shot src="c2-app-api.webp" alt="The Sleigh List showing 'Loaded 8 gifts from the North Pole API' and eight gifts" caption="The target: eight gifts, loaded live from your API."></shot>
+      <p>There is exactly one line to change, in <code>src/config.js</code>. Test it the way you did in Mission 1: build the image, run it in the workshop, and look at <code>/proxy/3000/</code>.</p>
+      <div class="callout grinch">
+        <b class="t">The app turns red</b>
+        <p>If the app shows a red box, it is telling you the truth, but not the whole truth. Open your browser's developer tools (<kbd>F12</kbd>) and read the <b>Console</b> tab.</p>
+      </div>
+      <details class="hint"><summary>Nudge: the API works in a browser tab but not from the app</summary><div class="hint-body"><p>When you type an address into the address bar, the browser simply fetches it. When JavaScript on <i>one</i> website asks for data from a <i>different</i> website, the browser first checks whether the other site allows it. Your API has not said that it does.</p></div></details>
+      <details class="hint"><summary>Hint: what the browser wants to see</summary><div class="hint-body"><p>The reply from your API needs a header called <code>Access-Control-Allow-Origin</code>. With Lambda proxy integration, API Gateway passes through whatever headers your <b>function</b> returns. So the fix is in your Lambda code, in the same dictionary as <code>statusCode</code>.</p></div></details>
+      <details class="hint"><summary>Hint: I changed config.js and nothing changed</summary><div class="hint-body"><p><code>config.js</code> is baked into the image when it is built. Did you rebuild the image and start a new container? Is an old container still holding port 3000 (<code>docker ps</code>)? Did your browser cache the old page (try a private window)?</p></div></details>
+      <label class="done-row"><input type="checkbox"> Goal 3 done: the app loads gifts from our API</label>
+    </section>
+
+    <!-- ============ GOAL 4 ============ -->
+    <section class="paper step" id="image" data-short="Image in ECR">
+      <div class="step-head"><div class="step-num">4</div><h2>Put your image in ECR</h2><span class="pill gold">⏱ about 30 min</span></div>
+      <p>You have done this before. This time there is no page to copy from: use your memory, your Mission 1 notes, and each other.</p>
+      <h3>Done when</h3>
+      <ul>
+        <li>Your repository on GitHub contains a <code>Dockerfile</code> that builds the app.</li>
+        <li>An ECR repository named <code>[[TEAM]]-sleigh-list</code> holds an image built from it.</li>
+      </ul>
+      <details class="hint"><summary>Nudge</summary><div class="hint-body"><p>Two stages: one that builds, one that serves. The serve stage needs three things copied in: the nginx config, the elf script, and the built site.</p></div></details>
+      <details class="hint"><summary>Hint: "toomanyrequests: You have reached your pull rate limit"</summary><div class="hint-body"><p>Docker Hub limits anonymous downloads, and four teams plus a build service share very few IP addresses. Use base images from Amazon's public registry instead: <code>public.ecr.aws/docker/library/node:22-alpine</code> and <code>public.ecr.aws/nginx/nginx:1.27-alpine</code>.</p></div></details>
+      <details class="hint"><summary>Hint: I forgot the push commands</summary><div class="hint-body"><p>In the ECR console, open your repository and click <b>View push commands</b>. AWS writes them out for you.</p></div></details>
+      <label class="done-row"><input type="checkbox"> Goal 4 done: Dockerfile in git, image in ECR</label>
+    </section>
+
+    <!-- ============ GOAL 5 ============ -->
+    <section class="paper step" id="ecs" data-short="Run on ECS by hand">
+      <div class="step-head"><div class="step-num">5</div><h2>Run it on ECS, by hand</h2><span class="pill gold">⏱ about 60 min</span></div>
+      <p>Get your image running on ECS Fargate behind a load balancer, using <b>only the AWS console</b>. No Terraform yet.</p>
+      <div class="callout why">
+        <b class="t">Why by hand, when you know Terraform?</b>
+        <p>Two reasons. The console shows you every option that exists, which is the fastest way to learn what a service can do. And after an hour of clicking, you will never again wonder whether infrastructure as code is worth the effort.</p>
+      </div>
+      <h3>Done when</h3>
+      <ul>
+        <li>A cluster, task definition and service exist, created in the console, and at least two tasks are running.</li>
+        <li>Your app answers at a load balancer address, and <b>🔔 Ring the bell</b> shows more than one elf.</li>
+        <li>Your Scribe has a list of every setting you had to choose. You will need it for goal 7.</li>
+      </ul>
+      <details class="hint"><summary>Nudge: the order of things</summary><div class="hint-body"><p>The same order as Mission 1: cluster, then task definition, then service. The "create service" screen can create the load balancer, listener and target group for you as part of the same form.</p></div></details>
+      <details class="hint"><summary>Hint: values people get wrong</summary><div class="hint-body">
+        <ul>
+          <li>Container port: <b>3000</b>, not 80.</li>
+          <li>Health check path on the target group: <code>/health</code>.</li>
+          <li>Public IP for the tasks: <b>turned on</b>. Without it a task in a public subnet cannot reach ECR to download its image.</li>
+          <li>Security groups: the load balancer accepts port 80 from anywhere. The tasks accept port 3000 from the load balancer's group.</li>
+        </ul></div></details>
+      <details class="hint"><summary>Hint: tasks keep stopping</summary><div class="hint-body"><p>Click a stopped task and read <b>Stopped reason</b>. "CannotPullContainerError" is about reaching ECR (public IP, or the wrong image address). "Task failed ELB health checks" is about the firewall or the health check path. The <a href="guides/troubleshooting.html">Grinch field guide</a> has more.</p></div></details>
+      <p>Need the full walk-through? See the <a href="guides/deploy-fargate.html">Fargate field guide</a>.</p>
+      <label class="done-row"><input type="checkbox"> Goal 5 done: our app runs on ECS, built by hand</label>
+    </section>
+
+    <!-- ============ GOAL 6 ============ -->
+    <section class="paper step" id="pipeline" data-short="Build the pipeline">
+      <div class="step-head"><div class="step-num">6</div><h2>Build the pipeline</h2><span class="pill gold">⏱ about 2 hours</span></div>
+      <p>This is the heart of the mission. After this goal, nobody on your team runs <code>docker build</code> or <code>docker push</code> by hand again.</p>
+      <div class="arch">
+        <div class="node"><span class="ico">🐙</span>git push</div><div class="arrow">→</div>
+        <div class="node au"><span class="ico">📥</span>Source<small>CodePipeline fetches the commit</small></div><div class="arrow">→</div>
+        <div class="node au"><span class="ico">🔨</span>Build<small>CodeBuild runs buildspec.yml</small></div><div class="arrow">→</div>
+        <div class="node go"><span class="ico">🚀</span>Deploy<small>ECS rolls out the new image</small></div>
+      </div>
+      <h3>Done when</h3>
+      <ul>
+        <li>Someone changes <code>BANNER</code> in <code>src/config.js</code>, commits and pushes.</li>
+        <li>Without anyone touching AWS, the new banner appears at your load balancer address a few minutes later.</li>
+        <li>The <b>build</b> label in the app's footer shows the commit that is running, not the word <code>local</code>.</li>
+      </ul>
+      <shot src="c2-pipeline.webp" alt="CodePipeline showing three green stages: Source, Build and Deploy" caption="Three green stages. (This capture used an S3 source for testing. Your Source stage will say GitHub.)"></shot>
+      <h3>Think first</h3>
+      <ul>
+        <li>CodeBuild starts from an empty machine every time. What does it need to be <i>told</i>, and what does it need to be <i>allowed</i> to do?</li>
+        <li>How will the Deploy stage know which image the Build stage just made?</li>
+      </ul>
+      <details class="hint"><summary>Nudge: the pieces</summary><div class="hint-body"><p>You need four things: a <b>connection</b> from AWS to GitHub, a <b>CodeBuild project</b>, a <code>buildspec.yml</code> file in your repo that lists the build commands, and a <b>pipeline</b> with three stages that ties them together.</p></div></details>
+      <details class="hint"><summary>Hint: "Cannot connect to the Docker daemon" in the build log</summary><div class="hint-body"><p>Building Docker images inside CodeBuild needs extra rights on the build machine. In the project's environment settings, turn on <b>Privileged</b> mode.</p></div></details>
+      <details class="hint"><summary>Hint: the build fails at "docker push" or at login</summary><div class="hint-body"><p>CodeBuild runs as an IAM role, and that role starts with almost no permissions. It needs to push to ECR. There is a managed policy made for exactly this: <code>AmazonEC2ContainerRegistryPowerUser</code>.</p></div></details>
+      <details class="hint"><summary>Hint: Deploy fails, or succeeds but nothing changes</summary><div class="hint-body"><p>The ECS deploy action reads a small file that your build must produce, called <code>imagedefinitions.json</code>. It contains the <b>container name</b> and the <b>image address</b>. The name must match the container name in your task definition exactly. List the file under <code>artifacts</code> in your buildspec so it is handed to the next stage.</p></div></details>
+      <details class="hint"><summary>Hint: showing the commit in the app's footer</summary><div class="hint-body"><p>The Dockerfile accepts a build argument called <code>BUILD_ID</code>. CodeBuild provides the commit in the variable <code>CODEBUILD_RESOLVED_SOURCE_VERSION</code>. Tagging the image with the short commit as well as <code>latest</code> is a good habit: you can always tell what is running.</p></div></details>
+      <details class="hint"><summary>Hint: the connection says "Pending"</summary><div class="hint-body"><p>A connection to GitHub has to be approved by a human in the console: select it and choose <b>Update pending connection</b>. The person doing it must be signed in to the GitHub account that owns your repository.</p></div></details>
+      <p>Full walk-throughs: <a href="guides/cicd-pipeline.html">CI/CD pipeline</a> and <a href="guides/deploy-fargate.html">auto-deploy to Fargate</a>.</p>
+      <label class="done-row"><input type="checkbox"> Goal 6 done: a git push changes the live app</label>
+    </section>
+
+    <!-- ============ GOAL 7 ============ -->
+    <section class="paper step" id="terraform" data-short="Turn it into Terraform">
+      <div class="step-head"><div class="step-num">7</div><h2>Turn it into Terraform</h2><span class="pill gold">⏱ about 2.5 hours</span></div>
+      <p>Right now your factory exists because several elves clicked several hundred things. If it vanished tonight, could you rebuild it by morning? Write it down as code, in your repository, in a <code>terraform/</code> folder.</p>
+      <h3>Done when</h3>
+      <ul>
+        <li><code>terraform apply</code> creates the API (bucket, function, gateway), the ECS setup, and the pipeline.</li>
+        <li>The Terraform <b>state</b> lives in an S3 bucket, and two teammates can both run <code>terraform plan</code> against it.</li>
+        <li>Your repository contains <b>no secrets</b>: no access keys, no tokens, no state files.</li>
+        <li>You have proven it: destroy everything, apply again, push a commit, and the app comes back.</li>
+      </ul>
+      <div class="callout">
+        <b class="t">Start from what you have</b>
+        <p>Your Mission 1 files are most of the ECS part. Copy them into <code>terraform/</code> and build from there. Add one area at a time and apply after each. Do not write 400 lines and apply once.</p>
+      </div>
+      <h3>Think first</h3>
+      <ul>
+        <li>If two people run <code>terraform apply</code> at the same moment from two copies of the state, what happens?</li>
+        <li>The console-built resources from goals 2, 5 and 6 already use your names. What are your options?</li>
+        <li>Your pipeline now changes the ECS service on every push. Terraform also manages that service. Who wins?</li>
+      </ul>
+      <details class="hint"><summary>Nudge: shared state</summary><div class="hint-body"><p>Look up Terraform's <code>backend "s3"</code> block. The state bucket has to exist <i>before</i> Terraform can use it, so create that one bucket by hand (turn on versioning). Recent Terraform versions can lock the state using S3 alone with <code>use_lockfile = true</code>.</p></div></details>
+      <details class="hint"><summary>Hint: "already exists" errors</summary><div class="hint-body"><p>Terraform will not adopt something it did not create. The simplest path: delete the hand-built version, then let Terraform create it. (You wrote down your settings in goal 5, so you know what to put in the code.) The advanced path is <code>terraform import</code>.</p></div></details>
+      <details class="hint"><summary>Hint: every apply rolls my app back to an old version</summary><div class="hint-body"><p>The pipeline registers a new task definition on each deploy. Terraform sees that the service no longer uses "its" task definition and puts it back. Tell Terraform that this one attribute is no longer its business: look up <code>lifecycle</code> and <code>ignore_changes</code>.</p></div></details>
+      <details class="hint"><summary>Hint: keeping secrets out</summary><div class="hint-body"><p>The best secret is one that does not exist. Your workshop and your build project use IAM <b>roles</b>, so there are no AWS keys to hide. Add <code>*.tfstate*</code> and <code>.terraform/</code> to <code>.gitignore</code> before your first commit, because state files can contain sensitive values. If you ever do need a real secret, such as a database password, keep it in AWS Secrets Manager and let Terraform read it from there.</p></div></details>
+      <details class="hint"><summary>Hint: the GitHub connection in Terraform</summary><div class="hint-body"><p>Terraform can create the connection (<code>aws_codeconnections_connection</code>), but it is always born <b>Pending</b>. A human still has to approve it once in the console. That is by design: code should not be able to grant itself access to your GitHub account.</p></div></details>
+      <p>Full walk-through: <a href="guides/terraform-team.html">Terraform for teams</a>.</p>
+      <label class="done-row"><input type="checkbox"> Goal 7 done: destroy, apply, push, and the factory is back</label>
+    </section>
+
+    <!-- ============ GOAL 8 ============ -->
+    <section class="paper step" id="eks" data-short="A home on Kubernetes">
+      <div class="step-head"><div class="step-num">8</div><h2>A second home on Kubernetes</h2><span class="pill gold">⏱ about 2 hours</span></div>
+      <p>Run the <b>same image</b> on Amazon EKS. Normally you would never deploy one app to two orchestrators. You are doing it here to see what is the same and what is different.</p>
+      <div class="callout warn">
+        <b class="t">Read this before you create a cluster</b>
+        <p><b>One cluster per team, created by one person.</b> By default <code>eksctl</code> builds a brand-new network for every cluster, and the account does not have room for four of those. Use the command in the <a href="guides/deploy-eks.html">EKS field guide</a>, which places your cluster in the existing default network. Creation takes about 15 minutes, so start it early and work on something else while it runs.</p>
+      </div>
+      <h3>Done when</h3>
+      <ul>
+        <li><code>kubectl get nodes</code> shows two nodes that are <code>Ready</code>.</li>
+        <li>Three pods of your app are running, created from a <code>deployment.yaml</code> that is in your repository.</li>
+        <li>Your app answers at a second load balancer address, and the footer says <b>on Kubernetes</b>.</li>
+      </ul>
+      <shot src="c2-app-eks.webp" alt="The Sleigh List footer reading 'Served by elf sleigh-list-77849db8c7-z8n7k on Kubernetes'" caption="Same image, different home. The elf's name is now a pod name."></shot>
+      <h3>Think first</h3>
+      <p>Fill in this table as a team. It makes a great slide.</p>
+      <div class="table-wrap">
+      <table>
+        <tr><th>Idea</th><th>ECS word</th><th>Kubernetes word</th></tr>
+        <tr><td>The recipe for running a container</td><td>Task definition</td><td>?</td></tr>
+        <tr><td>"Keep 3 copies running"</td><td>Service</td><td>?</td></tr>
+        <tr><td>A stable address in front of the copies</td><td>Load balancer + target group</td><td>?</td></tr>
+        <tr><td>"Are you alive?"</td><td>Target group health check</td><td>?</td></tr>
+      </table>
+      </div>
+      <details class="hint"><summary>Nudge: two files</summary><div class="hint-body"><p>You need a <b>Deployment</b> (which image, how many copies, which port) and a <b>Service</b> (how to reach them). Put both in a <code>k8s/</code> folder and apply them with <code>kubectl apply -f k8s/</code>.</p></div></details>
+      <details class="hint"><summary>Hint: getting a public address</summary><div class="hint-body"><p>A Service of <code>type: LoadBalancer</code> asks AWS for a load balancer. Its <code>port</code> is what the world uses (80). Its <code>targetPort</code> is what your container listens on (you know this number). The address appears under EXTERNAL-IP in <code>kubectl get service</code> and needs a minute or two to start answering.</p></div></details>
+      <details class="hint"><summary>Hint: pods stuck in ImagePullBackOff or Pending</summary><div class="hint-body"><p>Run <code>kubectl describe pod &lt;name&gt;</code> and read the <b>Events</b> at the bottom. ImagePullBackOff is nearly always a typo in the image address. Use the full ECR address including the tag.</p></div></details>
+      <details class="hint"><summary>Hint: the EKS console says "Error loading resources"</summary><div class="hint-body"><p>Being an AWS administrator does not make you a Kubernetes administrator. The cluster only knows the identity that created it, which was your workshop's role. Your personal console user is a stranger to it. Look up <b>EKS access entries</b> to introduce yourself. Until then, <code>kubectl</code> from the workshop works fine.</p></div></details>
+      <label class="done-row"><input type="checkbox"> Goal 8 done: our app runs on Kubernetes</label>
+    </section>
+
+    <!-- ============ GOAL 9 ============ -->
+    <section class="paper step" id="eks-pipeline" data-short="Pipeline to Kubernetes">
+      <div class="step-head"><div class="step-num">9</div><h2>One push, two homes</h2><span class="pill gold">⏱ about 90 min</span></div>
+      <p>Extend your pipeline so that the same push that updates ECS also rolls out to your Kubernetes cluster.</p>
+      <h3>Done when</h3>
+      <ul>
+        <li>You change the banner, push once, and <b>both</b> addresses show the new banner and the same build label.</li>
+      </ul>
+      <h3>Think first</h3>
+      <ul>
+        <li>Your <code>deployment.yaml</code> names an image. Every build produces a new tag. How will the file keep up?</li>
+        <li>In goal 8 the console could not see inside your cluster. Who is running <code>kubectl</code> now, and does the cluster know them?</li>
+      </ul>
+      <details class="hint"><summary>Nudge: where the commands go</summary><div class="hint-body"><p>CodeBuild can run <code>kubectl</code>. The standard build image already includes it. Add the Kubernetes steps to the end of your buildspec, after the image is pushed.</p></div></details>
+      <details class="hint"><summary>Hint: "error: You must be logged in to the server" or "Unauthorized"</summary><div class="hint-body"><p>Two separate locks. First, the build role needs the IAM permission <code>eks:DescribeCluster</code> so that <code>aws eks update-kubeconfig</code> can find the cluster. Second, the cluster itself must be told to trust that role: create an <b>access entry</b> for the CodeBuild role and associate a cluster access policy with it.</p></div></details>
+      <details class="hint"><summary>Hint: making the manifest follow the build</summary><div class="hint-body"><p>One simple way: put a placeholder word in <code>deployment.yaml</code> where the image goes, and have the build replace it with the real address using <code>sed</code> before piping the result to <code>kubectl apply -f -</code>. Finish with <code>kubectl rollout status</code> so the build fails if the rollout fails.</p></div></details>
+      <p>Full walk-through: <a href="guides/deploy-eks.html">EKS field guide</a>.</p>
+      <label class="done-row"><input type="checkbox"> Goal 9 done: one push updates ECS and Kubernetes</label>
+    </section>
+
+    <!-- ============ GOAL 10 ============ -->
+    <section class="paper step" id="present" data-short="Tell the story">
+      <div class="step-head"><div class="step-num">10</div><h2>Tell the story to Santa</h2><span class="pill gold">⏱ about 90 min</span></div>
+      <p>You have eight to ten minutes in front of leadership. They do not want a tutorial. They want to know what you built, what you decided, what went wrong, and what you learned.</p>
+      <h3>Done when</h3>
+      <ul>
+        <li>You have one architecture diagram that you drew yourselves.</li>
+        <li>Every team member speaks.</li>
+        <li>You show a live push travelling through the pipeline, or a recording in case the demo gremlins visit.</li>
+        <li>You tell the story of your two or three hardest problems, straight from your captain's log.</li>
+        <li>Everything is cleaned up afterwards (<a href="guides/cleanup.html">cleanup guide</a>).</li>
+      </ul>
+      <p>See the <a href="guides/presentation.html">presentation guide</a> for a slide-by-slide outline.</p>
+      <label class="done-row"><input type="checkbox"> Goal 10 done: presented, and cleaned up</label>
+    </section>
+
+    <section class="paper candy" id="mission-complete" hidden>
+      <h2>⭐ The star is lit!</h2>
+      <p>You built a serverless API, a container pipeline, infrastructure as code with shared state, and deployed to two orchestrators. That is a real platform, built by your team. Santa is delighted. Mrs. Claus is already asking about autoscaling.</p>
+    </section>
+
+    <section class="paper">
+      <h2>🌟 Gold star challenges</h2>
+      <p>Finished early? These are optional and get no hints. Pick the one that scares you most.</p>
+      <ul>
+        <li><b>Terraform from the pipeline.</b> Add a stage that runs <code>terraform apply</code>, so infrastructure changes are delivered the same way as app changes. What should require a human approval?</li>
+        <li><b>Your own build image.</b> Installing tools on every build wastes a minute or two. Create a custom CodeBuild image with Terraform already inside, store it in ECR, and use it.</li>
+        <li><b>A proper front door for Kubernetes.</b> Replace the simple load balancer with an <b>Ingress</b> and the AWS Load Balancer Controller.</li>
+        <li><b>The cluster as code.</b> Describe your EKS cluster in Terraform instead of creating it with <code>eksctl</code>.</li>
+        <li><b>Elves on demand.</b> Add autoscaling to the ECS service or the Kubernetes deployment, then prove that it works.</li>
+        <li><b>Write, not just read.</b> Make the app save a new gift: a second API method, a second Lambda function, and somewhere to store it.</li>
+      </ul>
+    </section>
+  </main>
+</div>

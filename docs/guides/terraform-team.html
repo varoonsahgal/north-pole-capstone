@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terraform for Teams · North Pole Cloud Capstone</title>
+<meta name="description" content="Remote state in S3, no secrets in git, and making Terraform live alongside a CI/CD pipeline.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="guides" data-root="../">
+<canvas id="snow" aria-hidden="true"></canvas>
+<header class="topbar">
+  <a class="brand" href="../index.html"><span aria-hidden="true">🎄</span> North Pole <b>Cloud Capstone</b></a>
+  <nav aria-label="Main"><a href="../index.html">Home</a><a href="../capstone-1.html">Mission 1</a><a href="../capstone-2.html">Mission 2</a><a href="../guides/index.html" class="on">Field Guides</a></nav>
+  <div class="tools">
+    <button id="team-chip" class="chip" type="button" title="Change team">🦌 <span id="team-chip-name">Pick your team</span></button>
+    <button id="snow-toggle" class="chip icon" type="button" aria-pressed="true" title="Toggle snow">❄️</button>
+  </div>
+</header>
+<div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Mission 2, goal 7</span>
+  <h1>Terraform for <em>Teams</em></h1>
+  <p class="lead">In Mission 1 one Driver ran Terraform from one folder. Now four of you share one set of infrastructure. Three things have to change.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/><path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/></svg>
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>What changes when a team shares Terraform</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Problem</th><th>What goes wrong</th><th>The fix</th></tr>
+      <tr><td>State on one machine</td><td>A teammate applies from their own copy. Terraform thinks nothing exists and tries to create everything a second time.</td><td>Keep the state in <b>S3</b>, with locking</td></tr>
+      <tr><td>Secrets in files</td><td>A key is committed to GitHub and found by a bot within minutes.</td><td>Use <b>roles</b>, and keep state out of git</td></tr>
+      <tr><td>Two things manage one resource</td><td>The pipeline deploys a new version. Terraform puts the old one back.</td><td>Tell Terraform what to <b>ignore</b></td></tr>
+    </table></div>
+    <p>This guide gives you the patterns and the awkward parts. It does not give you the whole configuration. Writing that is the goal.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">1</div><h2>Lay out the repository</h2></div>
+    <p>Keep the infrastructure code next to the app it runs. One suggested layout:</p>
+    <div class="code output"><div class="code-head"><span class="code-file">Your repository</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-text">sleigh-list/
+├── src/                  the app
+├── Dockerfile
+├── buildspec.yml
+├── data/wishlist.json
+├── lambda/
+│   └── lambda_function.py
+├── k8s/                  deployment.yaml, service.yaml
+└── terraform/
+    ├── main.tf           provider, backend
+    ├── variables.tf
+    ├── terraform.tfvars  team = "[[TEAM]]"   (no secrets in here!)
+    ├── api.tf            bucket, function, API Gateway
+    ├── ecs.tf            everything from Mission 1
+    └── cicd.tf           connection, CodeBuild, CodePipeline</code></pre></div>
+    <p>Before the first commit, make sure <code>.gitignore</code> contains these lines:</p>
+    <div class="code output"><div class="code-head"><span class="code-file">.gitignore</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-text">.terraform/
+*.tfstate
+*.tfstate.*</code></pre></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">2</div><h2>Move the state to S3</h2></div>
+    <p>The state bucket is the one thing Terraform cannot create for itself, because it needs somewhere to keep state before it can create anything. Make it by hand, once:</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+aws s3 mb s3://$TEAM-tfstate-$ACCOUNT
+aws s3api put-bucket-versioning --bucket $TEAM-tfstate-$ACCOUNT \
+  --versioning-configuration Status=Enabled</code></pre></div>
+    <p>Versioning keeps every old copy of the state. If a state file is ever damaged, you can go back.</p>
+    <p>Then tell Terraform to use it. Add a <code>backend</code> block inside the <code>terraform</code> block in <code>main.tf</code>:</p>
+    <div class="code"><div class="code-head"><span class="code-file">terraform/main.tf</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-hcl">terraform {
+  required_version = "&gt;= 1.10"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~&gt; 6.0"
+    }
+  }
+
+  # Remote state: the team shares ONE state file, stored in S3.
+  backend "s3" {
+    key          = "capstone-2/terraform.tfstate"
+    region       = "us-west-2"
+    use_lockfile = true # S3-native locking: two people cannot apply at the same time
+  }
+}
+
+provider "aws" {
+  region = "us-west-2"
+
+  default_tags {
+    tags = {
+      Team    = var.team
+      Project = "capstone-2"
+    }
+  }
+}</code></pre></div>
+    <p>The bucket name is not in the file, because a backend block cannot use variables. Pass it when you initialize:</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">cd terraform
+terraform init -backend-config="bucket=$TEAM-tfstate-$ACCOUNT"</code></pre></div>
+    <p>From now on, anyone on the team who clones the repository and runs that same <code>init</code> is working with the same state. Run <code>terraform plan</code> from two terminals to prove it.</p>
+    <div class="callout why">
+      <b class="t">What is the lock for?</b>
+      <p>While one person is applying, Terraform writes a small lock file next to the state. Anyone else who tries gets <code>Error acquiring the state lock</code> and has to wait. Without it, two applies at once can leave the state describing something that does not exist. If a lock is left behind after a crash, <code>terraform force-unlock</code> removes it. Ask the team first.</p>
+    </div>
+    <div class="callout"><p><b>Default tags.</b> The <code>default_tags</code> block stamps every resource with your team name. It makes cleanup and cost reports much easier.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">3</div><h2>Which resources you will need</h2></div>
+    <p>Use this as a checklist. The names are Terraform resource types. Look each one up in the <a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs" target="_blank" rel="noopener">AWS provider documentation</a>, which has an example for every one.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Part</th><th>Resource types</th></tr>
+      <tr><td><b>Gift API</b></td><td><code>aws_s3_bucket</code>, <code>aws_s3_object</code>, <code>aws_iam_role</code>, <code>aws_iam_role_policy</code>, <code>aws_lambda_function</code> (with a <code>data "archive_file"</code> to zip the code), <code>aws_api_gateway_rest_api</code>, <code>_resource</code>, <code>_method</code>, <code>_integration</code>, <code>_deployment</code>, <code>_stage</code>, and <code>aws_lambda_permission</code></td></tr>
+      <tr><td><b>ECS</b></td><td>Everything from Mission 1. Copy your files.</td></tr>
+      <tr><td><b>Pipeline</b></td><td><code>aws_codeconnections_connection</code>, <code>aws_s3_bucket</code> (for pipeline artifacts), <code>aws_iam_role</code> × 2, <code>aws_codebuild_project</code>, <code>aws_codepipeline</code></td></tr>
+      <tr><td><b>EKS access</b></td><td><code>aws_eks_access_entry</code>, <code>aws_eks_access_policy_association</code></td></tr>
+    </table></div>
+    <div class="callout"><p><b>Build it in slices.</b> Add the API, apply, test. Add ECS, apply, test. Add the pipeline, apply, test. A plan with five new resources is easy to read. A plan with forty is not.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">4</div><h2>The awkward parts</h2></div>
+    <p>Every team meets these. Here is what each one is about.</p>
+
+    <h3>API Gateway does not redeploy by itself</h3>
+    <p>In the console you clicked <b>Deploy API</b> after each change. Terraform needs a reason to do the same. Give the deployment a <code>triggers</code> block that changes whenever the API changes:</p>
+    <div class="code"><div class="code-head"><span class="code-file">terraform/api.tf (part)</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-hcl">resource "aws_api_gateway_deployment" "gifts" {
+  rest_api_id = aws_api_gateway_rest_api.gifts.id
+
+  # Redeploy whenever the method or integration changes
+  triggers = {
+    redeploy = sha1(jsonencode([
+      aws_api_gateway_resource.gifts.id,
+      aws_api_gateway_method.get.id,
+      aws_api_gateway_integration.lambda.id,
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}</code></pre></div>
+
+    <h3>API Gateway needs permission to call Lambda</h3>
+    <p>The console added this for you without saying so. In Terraform you must write it: an <code>aws_lambda_permission</code> that allows the principal <code>apigateway.amazonaws.com</code> to invoke your function. Without it the API returns "Internal server error" and the function's logs are empty, because the function was never called.</p>
+    <p>One more detail: API Gateway always calls Lambda with <code>POST</code>, even for a GET method. So the integration has <code>integration_http_method = "POST"</code> and <code>type = "AWS_PROXY"</code>.</p>
+
+    <h3>The pipeline and Terraform both manage the ECS service</h3>
+    <p>Each deploy registers a new task definition and points the service at it. Terraform then sees a difference and wants to point the service back at the old one. Tell it to stop caring about that one attribute:</p>
+    <div class="code"><div class="code-head"><span class="code-file">terraform/ecs.tf (inside the aws_ecs_service resource)</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-hcl"># The pipeline registers new task definition revisions on every deploy.
+# Without this, the next "terraform apply" would roll the service BACK to the old image.
+lifecycle {
+  ignore_changes = [task_definition]
+}</code></pre></div>
+
+    <h3>The first apply happens before any image exists</h3>
+    <p>Terraform creates an empty ECR repository and a service that wants an image from it. For the first few minutes the tasks will fail to start. That is expected. Once the pipeline's first run pushes an image and deploys it, everything settles.</p>
+
+    <h3>The GitHub connection is created Pending</h3>
+    <p>Terraform can create the connection, but a person has to approve it once in the console (<b>Developer Tools → Settings → Connections → Update pending connection</b>). After that, choose <b>Release change</b> on the pipeline to start the first run.</p>
+
+    <h3>Names that already exist</h3>
+    <p>If you built things by hand in goals 2, 5 and 6 with the same names, Terraform will report that they already exist. The simplest approach is to delete the hand-built ones first. Bucket names in particular must be unique, so the hand-built bucket has to go before Terraform can create its own.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">5</div><h2>Secrets</h2></div>
+    <p>The safest secret is one that does not exist. Look at how much of this project needs no secret at all:</p>
+    <div class="table-wrap"><table>
+      <tr><th>Who needs AWS access</th><th>How it gets it</th><th>Keys stored anywhere?</th></tr>
+      <tr><td>Terraform in your workshop</td><td>The server's IAM role</td><td>None</td></tr>
+      <tr><td>CodeBuild</td><td>The build project's IAM role</td><td>None</td></tr>
+      <tr><td>The Lambda function</td><td>Its execution role</td><td>None</td></tr>
+      <tr><td>ECS tasks</td><td>The task execution role</td><td>None</td></tr>
+      <tr><td>AWS reading GitHub</td><td>The connection you approved</td><td>None</td></tr>
+    </table></div>
+    <h3>Rules for the day you do have a secret</h3>
+    <ul>
+      <li><b>Never</b> write it in a <code>.tf</code> or <code>.tfvars</code> file that goes to git, and never put an <code>access_key</code> in a provider block.</li>
+      <li>Store it in <b>AWS Secrets Manager</b> or SSM Parameter Store, and let Terraform or the application read it from there at run time.</li>
+      <li>Mark sensitive variables and outputs with <code>sensitive = true</code> so Terraform does not print them.</li>
+      <li>Remember that the <b>state file</b> can contain secret values in plain text. That is one more reason it lives in a private bucket and not in git.</li>
+    </ul>
+    <details class="hint"><summary>Example: reading a secret without ever writing it down</summary><div class="hint-body">
+      <div class="code"><div class="code-head"><span class="code-file">Terraform</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-hcl"># Someone created this secret by hand in Secrets Manager. Terraform only reads it.
+data "aws_secretsmanager_secret_version" "db" {
+  secret_id = "${var.team}/database-password"
+}
+
+# Use it where it is needed. The value never appears in your code or in git.
+# password = data.aws_secretsmanager_secret_version.db.secret_string</code></pre></div>
+    </div></details>
+    <div class="callout warn">
+      <b class="t">If a key ever does reach GitHub</b>
+      <p>Deleting the commit is not enough. Bots copy keys within minutes, and git history keeps them. Deactivate the key in IAM straight away, then tell your instructor.</p>
+    </div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">6</div><h2>The real test</h2></div>
+    <p>You only know your code is complete when it can rebuild everything from nothing.</p>
+    <ol class="do">
+      <li><code>terraform destroy</code></li>
+      <li><code>terraform apply</code></li>
+      <li>Approve the connection in the console and choose <b>Release change</b>.</li>
+      <li>Put the new API address in <code>src/config.js</code> and push. (The address changes when the API is recreated. How could you avoid that step? A good question for your presentation.)</li>
+      <li>Open the app. Eight gifts, loaded from the API, delivered by the pipeline.</li>
+    </ol>
+    <div class="callout win"><p>If that works, your whole factory is a folder of text files. You can review it, copy it for a second environment, or rebuild it after a disaster.</p></div>
+  </section>
+</div>
+
+<footer class="foot">
+  <p>🎁 Built for the Cloud Foundations cohort · Be kind to the elves: tear down what you build.</p>
+  <p><a href="../guides/cleanup.html">Cleanup guide</a> · <a href="../guides/troubleshooting.html">Grinch field guide</a> · <a href="../instructor.html">Instructor notes</a></p>
+</footer>
+<dialog id="team-dialog">
+  <form method="dialog">
+    <h2>🦌 Which reindeer team are you?</h2>
+    <p>Your instructor assigns the teams. Your pick personalises every command on this site, so teams never step on each other.</p>
+    <div class="team-grid" id="team-grid"></div>
+    <p class="small">Stored only in this browser. You can change it any time from the top bar.</p>
+    <button class="btn ghost" value="cancel">Close</button>
+  </form>
+</dialog>
+<div id="lightbox" hidden><img alt=""></div>
+<script src="../assets/js/site.js"></script>
+</body>
+</html>

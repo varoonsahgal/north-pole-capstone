@@ -1,0 +1,119 @@
+<!-- title: Instructor Notes | nav: none | desc: Setup, timing, costs and teardown notes for running the North Pole Cloud Capstone. -->
+<section class="hero small-hero">
+  <span class="kicker">For the instructor</span>
+  <h1>Instructor <em>Notes</em></h1>
+  <p class="lead">What to check before class, how the sessions run, what it costs, and how to remove everything afterwards.</p>
+  {{hills}}
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>At a glance</h2>
+    <div class="table-wrap"><table>
+      <tr><th></th><th>Mission 1</th><th>Mission 2</th></tr>
+      <tr><td>Style</td><td>Guided, step by step</td><td>Goals, wrapped hints, field guides as a safety net</td></tr>
+      <tr><td>Time</td><td>One 3-hour session</td><td>About 10 hours of team time</td></tr>
+      <tr><td>Builds</td><td>Docker image → ECR → ECS Fargate → load balancer, all in Terraform</td><td>Serverless API, CI/CD pipeline, team Terraform with remote state, EKS</td></tr>
+      <tr><td>App</td><td colspan="2"><a href="https://github.com/varoonsahgal/sleigh-list" target="_blank" rel="noopener">varoonsahgal/sleigh-list</a> (a GitHub template repository)</td></tr>
+      <tr><td>Dev environment</td><td colspan="2">"Santa's Workshop": code-server (VS Code in the browser) on EC2 behind CloudFront, one per team, launched from CloudShell. Replaces Cloud9.</td></tr>
+    </table></div>
+    <p>Designed for <b>four teams of about four</b> working at the same time in one AWS account, in <code>us-west-2</code>. Eight team names are built in: dasher, dancer, prancer, vixen, comet, cupid, donner, blitzen. Keep <code>rudolph</code> for your own demos.</p>
+  </section>
+
+  <section class="paper">
+    <h2>Before class</h2>
+    <ol class="do">
+      <li><b>Assign teams and reindeer names.</b> The team name becomes the prefix of every resource, so each team must have a different one.</li>
+      <li><b>Check student access.</b> Each student needs console access to the shared account with rights to create IAM roles, EC2, ECS, ECR, Lambda, API Gateway, CodeBuild, CodePipeline, EKS, CloudFront, Secrets Manager and CloudFormation. The course's existing <code>AdministratorAccess</code> setup is enough.</li>
+      <li><b>Check the default VPC.</b> Everything uses the default VPC and its public subnets in <code>us-west-2</code>. If the default VPC was deleted, recreate it with <code>aws ec2 create-default-vpc</code>.</li>
+      <li><b>Check quotas</b> (defaults are fine for four teams):
+        <div class="table-wrap"><table>
+          <tr><th>Quota</th><th>Used per team</th></tr>
+          <tr><td>Elastic IPs</td><td>1 (the workshop)</td></tr>
+          <tr><td>CloudFront distributions</td><td>1</td></tr>
+          <tr><td>Application Load Balancers</td><td>1, plus 1 classic load balancer from Kubernetes</td></tr>
+          <tr><td>Fargate vCPU</td><td>About 1.25</td></tr>
+          <tr><td>EC2 vCPU</td><td>2 (workshop) + 4 (two EKS nodes)</td></tr>
+          <tr><td>VPCs</td><td>0, provided teams use the eksctl command in the EKS guide</td></tr>
+        </table></div>
+      </li>
+      <li><b>Optional: launch the workshops yourself</b> the day before, to save ten minutes of Mission 1. From CloudShell:
+        <code-block lang="bash" file="AWS CloudShell">
+for team in dasher dancer prancer vixen; do
+  curl -fsSL https://varoonsahgal.github.io/north-pole-capstone/workshop/launch.sh | bash -s -- $team &
+done
+wait
+        </code-block>
+        Each prints a URL and a password to hand to that team. The launch step in Mission 1 is safe to run again: it just prints the same details.
+      </li>
+      <li><b>GitHub accounts.</b> For Mission 2, at least one person per team needs a personal GitHub account that can install the "AWS Connector for GitHub" app on one repository.</li>
+    </ol>
+  </section>
+
+  <section class="paper">
+    <h2>Running Mission 1</h2>
+    <ul>
+      <li><b>Timing was measured</b> on a clean run: workshop launch 8 minutes, first image build under 1 minute, load balancer creation 2.5 minutes, the final rolling replacement 3 to 4 minutes, <code>terraform destroy</code> about 3 minutes.</li>
+      <li><b>The three failures in steps 7 and 8 are deliberate:</b> the missing network configuration, the load balancer with no listener, and unhealthy targets caused by the default security group. Resist rescuing teams too early in step 8. Two minutes of discussion before the hints is where the learning happens.</li>
+      <li><b>If a team falls behind,</b> the tested files for every step are in the site repository under <code>solutions/capstone-1/</code>.</li>
+      <li><b>End of session:</b> teams run <code>terraform destroy</code> and keep the workshop.</li>
+    </ul>
+  </section>
+
+  <section class="paper">
+    <h2>Running Mission 2</h2>
+    <ul>
+      <li><b>Deliberate mistake.</b> The gift API guide's Lambda returns a list as the <code>body</code>. The Lambda test passes, and API Gateway returns 502 "Malformed Lambda proxy response". The fix (<code>json.dumps</code>) is behind a "last resort" box at the end of that guide. CORS is the second lesson, when the app first calls the API.</li>
+      <li><b>EKS takes 15 minutes to create</b> and 10 to delete. Tell teams to start it early in the second half. Make sure they use the <code>eksctl</code> command from the guide, which uses the default VPC. The stock command creates a VPC and a NAT gateway per cluster.</li>
+      <li><b>EKS console access.</b> The cluster's only administrator is the workshop's IAM role. Students see "Error loading resources" in the console until they add an access entry for their own user. This is intended, and it prepares them for giving the build role access.</li>
+      <li><b>One pipeline run</b> takes about 4 minutes for ECS, or about 5 with the Kubernetes step.</li>
+      <li><b>Reference solution.</b> A complete, tested solution (Dockerfile, buildspec, Kubernetes manifests, Lambda and Terraform) is in the private repository <a href="https://github.com/varoonsahgal/sleigh-list-solution" target="_blank" rel="noopener">varoonsahgal/sleigh-list-solution</a>.</li>
+    </ul>
+  </section>
+
+  <section class="paper">
+    <h2>Cost</h2>
+    <p>Rough on-demand prices in us-west-2. Check current pricing before quoting these.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Item</th><th>Per team, per hour</th><th>Note</th></tr>
+      <tr><td>Workshop (t3.large, 40 GB)</td><td>about $0.09</td><td>Runs for the whole course unless stopped</td></tr>
+      <tr><td>ECS: 3 small Fargate tasks + ALB</td><td>about $0.06</td><td>Only while deployed</td></tr>
+      <tr><td>EKS control plane + 2 × t3.medium + load balancer</td><td>about $0.21</td><td>The expensive part. Delete it promptly.</td></tr>
+      <tr><td>Lambda, API Gateway, S3, CodeBuild, CodePipeline</td><td>cents in total</td><td></td></tr>
+    </table></div>
+    <p>To pause a workshop overnight, stop its EC2 instance. The address stays the same after a restart, because the workshop has an Elastic IP.</p>
+  </section>
+
+  <section class="paper">
+    <h2>After the course</h2>
+    <ol class="do">
+      <li>Have each team follow the <a href="guides/cleanup.html">cleanup guide</a>.</li>
+      <li>Check each team for leftovers:
+        <code-block lang="bash" file="AWS CloudShell">
+for team in dasher dancer prancer vixen; do
+  curl -fsSL https://varoonsahgal.github.io/north-pole-capstone/workshop/leftovers.sh | bash -s -- $team
+done
+        </code-block>
+      </li>
+      <li>Delete the workshops:
+        <code-block lang="bash" file="AWS CloudShell">
+for team in dasher dancer prancer vixen; do
+  aws cloudformation delete-stack --stack-name $team-workshop --region us-west-2
+done
+        </code-block>
+      </li>
+    </ol>
+  </section>
+
+  <section class="paper">
+    <h2>How the workshop is built</h2>
+    <p>The launch command downloads <a href="workshop/launch.sh">launch.sh</a>, which deploys the CloudFormation template <a href="workshop/workshop.yaml">workshop.yaml</a>. Per team it creates:</p>
+    <ul>
+      <li>An EC2 instance (Amazon Linux 2023) with Docker, Terraform, kubectl, eksctl, helm and code-server installed at boot. Tool versions are pinned at the top of the instance's setup script in the template.</li>
+      <li>An IAM role with <code>AdministratorAccess</code>, matching what students already have, so Terraform and the CLI work without access keys.</li>
+      <li>A CloudFront distribution that provides HTTPS. The instance's security group accepts traffic only from CloudFront.</li>
+      <li>A random password in Secrets Manager (<code>TEAM-workshop-password</code>), and an Elastic IP so the address survives a stop and start.</li>
+    </ul>
+    <p>Anyone with the URL and password has administrator access to the account through the workshop's terminal. Treat the pair as a credential, and delete the stacks when the course ends.</p>
+    <p>The site itself is built by <code>build.py</code> from <code>src/pages</code> into <code>docs/</code>, which GitHub Pages serves.</p>
+  </section>
+</div>

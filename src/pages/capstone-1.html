@@ -1,0 +1,574 @@
+<!-- title: Mission 1 · Operation Sleigh Launch | nav: c1 | desc: Guided 3-hour capstone: containerize a React app and run it on ECS Fargate behind a load balancer with Terraform. -->
+<section class="hero small-hero">
+  <div class="sleigh-fly" aria-hidden="true">🎅🛷🦌🦌🦌</div>
+  <span class="kicker">Mission 1 · Guided · 3 hours</span>
+  <h1>Operation <em>Sleigh Launch</em></h1>
+  <p class="lead">Take Santa's Sleigh List from one fragile server to three self-healing containers behind a load balancer. You will write every piece yourselves, and understand why it is there.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/>
+    <path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/>
+  </svg>
+</section>
+
+<div class="wrap with-toc">
+  <aside class="toc">
+    <h4>Flight plan</h4>
+    <div class="toc-links"></div>
+  </aside>
+
+  <main>
+    <div class="progress">
+      <div class="label"><span>🛷 Sleigh progress</span><span class="count"></span></div>
+      <div class="track"><div class="fill"></div><span class="sled">🛷</span><span class="home">🏠</span></div>
+    </div>
+
+    <div class="team-banner needs-team">
+      <span>🦌 Pick your team so the commands below use your team name.</span>
+      <button type="button" class="pick-team">Pick my team</button>
+    </div>
+
+    <!-- ============ STEP 0 ============ -->
+    <section class="paper candy step" id="assemble" data-short="Assemble the team">
+      <div class="step-head"><div class="step-num">0</div><h2>Assemble the team</h2><span class="pill gold">⏱ 10 min</span></div>
+      <p>By the end of this session, anyone on the internet will be able to open your team's Sleigh List, and it will keep running even if one of its servers disappears.</p>
+
+      <h3>What you are building</h3>
+      <div class="arch">
+        <div class="node"><span class="ico">🌍</span>Anyone<small>a web browser</small></div>
+        <div class="arrow">→</div>
+        <div class="node au"><span class="ico">🚪</span>Load balancer<small>one public address</small></div>
+        <div class="arrow">→</div>
+        <div class="node go"><span class="ico">🧝🧝🧝</span>3 containers<small>ECS Fargate, 3 zones</small></div>
+        <div class="arrow">←</div>
+        <div class="node"><span class="ico">📦</span>Your image<small>stored in ECR</small></div>
+      </div>
+      <p>Everything in that picture will be created by <b>Terraform</b> code that you write, so you could rebuild it all with one command.</p>
+
+      <h3>Pick your jobs</h3>
+      <div class="roles">
+        <div class="role"><div class="ico">⌨️</div><h4>Driver</h4><p>Shares their screen and types.</p></div>
+        <div class="role"><div class="ico">🧭</div><h4>Navigator</h4><p>Reads this page aloud and calls the next move.</p></div>
+        <div class="role"><div class="ico">🔭</div><h4>Scout</h4><p>Has the AWS console open and checks that things really appear.</p></div>
+        <div class="role"><div class="ico">📓</div><h4>Scribe</h4><p>Keeps time, and logs every error and how you fixed it.</p></div>
+      </div>
+      <p>You will swap jobs three times, whenever you see the rotation bell 🔔.</p>
+
+      <h3>The pace</h3>
+      <div class="table-wrap">
+      <table>
+        <tr><th>Stage</th><th>What happens</th><th>Minutes</th></tr>
+        <tr><td>0 to 2</td><td>Team up, open your workshop, meet the app</td><td>35</td></tr>
+        <tr><td>3</td><td>Put the app in a container</td><td>25</td></tr>
+        <tr><td>4 to 5</td><td>First Terraform: a registry, then push your image</td><td>25</td></tr>
+        <tr><td>6 to 7</td><td>Cluster, task and service on Fargate</td><td>40</td></tr>
+        <tr><td>8</td><td>Load balancer (the Grinch lives here)</td><td>35</td></tr>
+        <tr><td>9 to 10</td><td>Victory lap, debrief, cleanup</td><td>20</td></tr>
+      </table>
+      </div>
+      <div class="callout team">
+        <b class="t">Every name starts with your team name</b>
+        <p>Four teams are building the same thing in one AWS account. Your resources are called <code>[[TEAM]]-something</code>. If you see a resource with another reindeer's name on it, leave it alone.</p>
+      </div>
+      <label class="done-row"><input type="checkbox"> We have a team name and everyone has a job</label>
+    </section>
+
+    <!-- ============ STEP 1 ============ -->
+    <section class="paper step" id="workshop" data-short="Open Santa's Workshop">
+      <div class="step-head"><div class="step-num">1</div><h2>Open Santa's Workshop</h2><span class="pill gold">⏱ 15 min</span></div>
+      <p>You need one shared computer in the cloud where the whole team can write code and run Docker and Terraform. We call it <b>Santa's Workshop</b>: VS Code running in your browser, on an EC2 server that belongs to your team.</p>
+      <div class="callout why">
+        <b class="t">Where did Cloud9 go?</b>
+        <p>AWS has retired Cloud9 for new customers. The workshop does the same job with the same editor you may already know (VS Code), and everything is pre-installed.</p>
+      </div>
+      <p><b>Only the Driver does this step.</b> Everyone else watches the shared screen.</p>
+      <ol class="do">
+        <li>Sign in to the <a href="https://us-west-2.console.aws.amazon.com/console/home?region=us-west-2" target="_blank" rel="noopener">AWS console</a> and check that the region in the top right says <b>United States (Oregon)</b>, also known as <code>us-west-2</code>.</li>
+        <li>Click the <b>CloudShell</b> icon in the top bar (it looks like a small terminal: <code>&gt;_</code>). A terminal opens at the bottom of the page. Close the welcome message if you see one.</li>
+        <li>Paste this one command and press <kbd>Enter</kbd>:
+          <code-block lang="bash" file="AWS CloudShell">
+curl -fsSL https://varoonsahgal.github.io/north-pole-capstone/workshop/launch.sh | bash -s -- [[TEAM]]
+          </code-block>
+        </li>
+        <li>It takes about <b>8 minutes</b>. Keep the tab open. Use the time for the elf check below.</li>
+        <li>When it finishes it prints a <b>URL</b> and a <b>password</b>. Paste both into your team chat so all four of you have them.</li>
+      </ol>
+      <code-block lang="text" file="What you should see at the end">
+  ============================================================
+   Santa's Workshop is ready for team: [[TEAM]]
+  ============================================================
+   URL:       https://d1234abcd.cloudfront.net/?folder=/home/ec2-user/workshop
+   Password:  (20 letters and numbers)
+      </code-block>
+
+      <div class="quiz">
+        <h4>Elf check · while you wait</h4>
+        <p class="q">The command you just ran did not ask for an access key. How was CloudShell allowed to create things in AWS?</p>
+        <button type="button">It used a key that is saved inside the script</button>
+        <button type="button" data-right>It borrowed the identity of the person signed in to the console</button>
+        <button type="button">CloudShell is always an administrator</button>
+        <p class="explain">Right. CloudShell acts as <i>you</i>, with temporary credentials, for as long as you are signed in. Your workshop does something similar: its server carries an IAM <b>role</b>, so Terraform will never need a key either.</p>
+      </div>
+
+      <h3>Step inside</h3>
+      <ol class="do">
+        <li><b>Everyone</b> opens the URL and types the password.</li>
+        <li>You should all see the same folder, with a file called <code>WELCOME.md</code>.</li>
+        <li>The Driver opens a terminal: click the <b>☰</b> menu in the top left, then <b>Terminal</b>, then <b>New Terminal</b>.</li>
+        <li>Check that the tools are ready:
+          <code-block lang="bash">
+echo "Team: $TEAM"
+aws sts get-caller-identity --query Arn --output text
+terraform version
+docker --version
+          </code-block>
+        </li>
+      </ol>
+      <shot src="ws-ide.webp" alt="VS Code in the browser showing the WELCOME file and a terminal with the team name, role ARN, Terraform and Docker versions" caption="Santa's Workshop: files on the left, your code in the middle, a terminal at the bottom. The terminal already knows your team name and is already signed in to AWS."></shot>
+      <div class="callout warn">
+        <b class="t">One keyboard at a time</b>
+        <p>You all see the same files, but this is not Google Docs. If two people edit the same file at once, the last save wins. Let the Driver type. Everyone else can open their own terminal to look around.</p>
+      </div>
+      <p>Stuck? See the <a href="guides/workshop.html">Santa's Workshop guide</a>.</p>
+      <label class="done-row"><input type="checkbox"> All of us can see the workshop, and the four checks printed without errors</label>
+    </section>
+
+    <!-- ============ STEP 2 ============ -->
+    <section class="paper step" id="app" data-short="Meet the Sleigh List">
+      <div class="step-head"><div class="step-num">2</div><h2>Meet the Sleigh List</h2><span class="pill gold">⏱ 10 min</span></div>
+      <p>The app is a small React website. Get a copy of its code into your workshop.</p>
+      <code-block lang="bash">
+cd ~/workshop
+git clone https://github.com/varoonsahgal/sleigh-list.git
+cd sleigh-list
+ls
+      </code-block>
+      <p>In the file list on the left, open <code>sleigh-list</code> and look at these three things:</p>
+      <div class="table-wrap">
+      <table>
+        <tr><th>File</th><th>What it is</th></tr>
+        <tr><td><code>src/config.js</code></td><td>The settings: team name, banner text, and (in Mission 2) the address of an API.</td></tr>
+        <tr><td><code>docker/nginx.conf</code></td><td>Settings for nginx, the small web server that will hand the site to browsers. Notice it listens on <b>port 3000</b> and answers a <code>/health</code> address.</td></tr>
+        <tr><td><code>docker/40-elf.sh</code></td><td>A tiny script that runs when a container starts. It writes down the container's own name, so the page can tell you <i>which</i> copy answered you. You will enjoy this later.</td></tr>
+      </table>
+      </div>
+      <h3>Make it yours</h3>
+      <p>Open <code>src/config.js</code> and change the team name. The file saves itself.</p>
+      <code-block lang="js" file="src/config.js (change this one line)">
+export const TEAM = "Team [[TEAM]]";
+      </code-block>
+      <div class="callout look">
+        <b class="t">Notice what is missing</b>
+        <p>There is no <code>Dockerfile</code> in this folder. Right now this is just source code. Nothing here can run on a server yet. That is your next job.</p>
+      </div>
+      <label class="done-row"><input type="checkbox"> We cloned the app and put our team name in config.js</label>
+    </section>
+
+    <!-- ============ STEP 3 ============ -->
+    <section class="paper step" id="docker" data-short="Wrap it in a container">
+      <div class="step-head"><div class="step-num">3</div><h2>Wrap it in a container</h2><span class="pill gold">⏱ 25 min</span></div>
+      <p>A <b>container image</b> is a sealed box holding your app and everything it needs to run. If the box runs in your workshop, it will run the same way on AWS. A <code>Dockerfile</code> is the recipe for building that box.</p>
+      <div class="callout why">
+        <b class="t">Two stages: a workshop and a sleigh</b>
+        <p>Building a React app needs Node.js and hundreds of megabytes of tools. <i>Serving</i> the finished site needs only a few small files and a web server. So the recipe has two stages. Stage 1 builds the site. Stage 2 starts fresh and copies in only the finished files. The big tools are left behind, and the image you ship is small and has less in it to attack.</p>
+      </div>
+      <ol class="do">
+        <li>In the file list, right-click the <code>sleigh-list</code> folder and choose <b>New File…</b>. Name it exactly <code>Dockerfile</code> (capital D, no extension).</li>
+        <li>Paste this in. Have the Navigator read the comments aloud:
+          <code-block lang="dockerfile" file="~/workshop/sleigh-list/Dockerfile" src="solutions/capstone-1/Dockerfile"></code-block>
+        </li>
+        <li>Build the image. The dot at the end means "use the recipe in this folder".
+          <code-block lang="bash">
+cd ~/workshop/sleigh-list
+docker build -t sleigh-list .
+          </code-block>
+        </li>
+        <li>Look at what you made:
+          <code-block lang="bash">
+docker images sleigh-list
+          </code-block>
+          It should be about <b>50 MB</b>. The Node.js image you built with is over 150 MB, and none of it shipped.
+        </li>
+      </ol>
+
+      <h3>Test flight</h3>
+      <p>Run a container from your image, right here in the workshop.</p>
+      <code-block lang="bash">
+docker run -d --name sleigh-test -p 3000:3000 sleigh-list
+docker ps
+curl localhost:3000/health
+curl localhost:3000/elf.json
+      </code-block>
+      <p>The first <code>curl</code> should answer <code>ok</code>. The second shows the name of the container that answered.</p>
+      <p><b>Now see it.</b> Take your workshop address, remove everything after <code>.cloudfront.net</code>, and add <code>/proxy/3000/</code>. For example: <code>https://d1234abcd.cloudfront.net/proxy/3000/</code></p>
+      <shot src="ws-preview.webp" alt="The Sleigh List app running, showing sample gifts and 'Served by elf ... on Docker'" caption="Your container, running in the workshop. The footer says which 'elf' (container) served the page."></shot>
+      <div class="callout">
+        <b class="t">What does <code>-p 3000:3000</code> mean?</b>
+        <p>A container has its own private network. <code>-p 3000:3000</code> connects port 3000 on the workshop server to port 3000 inside the container. Remember the number 3000. You will need it three more times today.</p>
+      </div>
+      <p>Stop and remove the test container. You are done with it.</p>
+      <code-block lang="bash">
+docker rm -f sleigh-test
+      </code-block>
+      <div class="quiz">
+        <h4>Elf check</h4>
+        <p class="q">Why does the Dockerfile copy <code>package.json</code> and run <code>npm ci</code> <i>before</i> copying the rest of the code?</p>
+        <button type="button">npm refuses to run if source files are present</button>
+        <button type="button" data-right>So Docker can reuse the saved "dependencies" layer when only your code changed</button>
+        <button type="button">It makes the final image smaller</button>
+        <p class="explain">Docker saves each step as a layer and reuses it if its inputs did not change. Dependencies change rarely; code changes all the time. Ordering it this way turns a one-minute rebuild into a few seconds. Try it: run the build command again and watch for the word <code>CACHED</code>.</p>
+      </div>
+      <div class="callout team"><b class="t">🔔 Rotation bell</b><p>Swap jobs. A new Driver shares their screen (same workshop URL, same password).</p></div>
+      <label class="done-row"><input type="checkbox"> We built the image and saw our app at /proxy/3000/</label>
+    </section>
+
+    <!-- ============ STEP 4 ============ -->
+    <section class="paper step" id="terraform" data-short="First Terraform: a registry">
+      <div class="step-head"><div class="step-num">4</div><h2>First Terraform: a registry</h2><span class="pill gold">⏱ 15 min</span></div>
+      <p>Your image exists only inside the workshop. AWS cannot run what it cannot reach. You need a <b>registry</b>: a place in the cloud to store images. On AWS that is <b>ECR</b> (Elastic Container Registry).</p>
+      <p>You could click through the console to make one. Instead you will <i>describe</i> it in code and let Terraform create it. Infrastructure written as code can be reviewed, repeated, and destroyed cleanly.</p>
+      <ol class="do">
+        <li>Make a folder for your infrastructure code, next to the app:
+          <code-block lang="bash">
+mkdir -p ~/workshop/infra
+cd ~/workshop/infra
+          </code-block>
+        </li>
+        <li>In the file list, create <code>main.tf</code> inside <code>infra</code>:
+          <code-block lang="hcl" file="~/workshop/infra/main.tf" src="solutions/capstone-1/main.tf"></code-block>
+        </li>
+        <li>Create <code>terraform.tfvars</code>. This is where the value of the <code>team</code> variable comes from:
+          <code-block lang="hcl" file="~/workshop/infra/terraform.tfvars">
+team = "[[TEAM]]"
+          </code-block>
+        </li>
+        <li>Create <code>ecr.tf</code>:
+          <code-block lang="hcl" file="~/workshop/infra/ecr.tf" src="solutions/capstone-1/ecr.tf"></code-block>
+        </li>
+      </ol>
+      <div class="callout look">
+        <b class="t">Look for what is NOT there</b>
+        <p>The <code>provider "aws"</code> block has no access key and no secret key. Terraform automatically uses the IAM role attached to your workshop server. A key that does not exist cannot leak.</p>
+      </div>
+      <h3>The three commands you will use all day</h3>
+      <code-block lang="bash">
+terraform init
+      </code-block>
+      <p><b>init</b> downloads the AWS plugin. You run it once per folder.</p>
+      <code-block lang="bash">
+terraform plan
+      </code-block>
+      <p><b>plan</b> changes nothing. It shows what Terraform <i>would</i> do. Read it together: one resource to add, marked with a green <code>+</code>.</p>
+      <code-block lang="bash">
+terraform apply
+      </code-block>
+      <p><b>apply</b> shows the plan again and waits. Type <code>yes</code> to go ahead.</p>
+      <code-block lang="text" file="What you should see">
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+ecr_repository_url = "123456789012.dkr.ecr.us-west-2.amazonaws.com/[[TEAM]]-sleigh-list"
+      </code-block>
+      <p><b>Scout:</b> open <a href="https://us-west-2.console.aws.amazon.com/ecr/private-registry/repositories?region=us-west-2" target="_blank" rel="noopener">ECR in the console</a> and find <code>[[TEAM]]-sleigh-list</code>. It is empty for now.</p>
+      <div class="callout why">
+        <b class="t">How does Terraform remember what it built?</b>
+        <p>Look in the <code>infra</code> folder. There is a new file, <code>terraform.tfstate</code>. That is Terraform's memory: a list of everything it created. Never edit it by hand, and never delete it while your resources exist. (In Mission 2 you will move it somewhere safer.)</p>
+      </div>
+      <label class="done-row"><input type="checkbox"> Terraform created our ECR repository and the Scout found it in the console</label>
+    </section>
+
+    <!-- ============ STEP 5 ============ -->
+    <section class="paper step" id="push" data-short="Ship the image to ECR">
+      <div class="step-head"><div class="step-num">5</div><h2>Ship the image to ECR</h2><span class="pill gold">⏱ 10 min</span></div>
+      <p>Pushing an image takes three moves: sign Docker in to your registry, give the image its full address as a name, and push.</p>
+      <code-block lang="bash">
+cd ~/workshop/infra
+
+# 1. Ask Terraform for the repository address and remember it
+REPO=$(terraform output -raw ecr_repository_url)
+echo $REPO
+
+# 2. Sign Docker in to ECR (the password is temporary and never shown)
+aws ecr get-login-password | docker login --username AWS --password-stdin ${REPO%%/*}
+
+# 3. Give the image its full registry name, then push it
+docker tag sleigh-list:latest $REPO:latest
+docker push $REPO:latest
+      </code-block>
+      <p>You should see <code>Login Succeeded</code>, then several layers being pushed.</p>
+      <p><b>Scout:</b> refresh the repository in the console. There is your image, tagged <code>latest</code>, about 21 MB compressed.</p>
+      <shot src="c1-ecr-image.webp" alt="ECR console showing one image tagged latest in the team repository" caption="Your image, safely in the registry."></shot>
+      <details class="hint">
+        <summary>It says "no basic auth credentials" or "denied"</summary>
+        <div class="hint-body"><p>The login step did not work, or you opened a new terminal where <code>$REPO</code> is empty. Run all of the commands above again, in the same terminal, from the top.</p></div>
+      </details>
+      <label class="done-row"><input type="checkbox"> Our image is in ECR with the tag "latest"</label>
+    </section>
+
+    <!-- ============ STEP 6 ============ -->
+    <section class="paper step" id="task" data-short="A cluster and a task">
+      <div class="step-head"><div class="step-num">6</div><h2>A cluster and a task</h2><span class="pill gold">⏱ 20 min</span></div>
+      <p><b>ECS</b> (Elastic Container Service) runs containers for you. It has three ideas, and you will build them in order:</p>
+      <div class="arch">
+        <div class="node"><span class="ico">🏘️</span>Cluster<small>a named home for your containers</small></div>
+        <div class="arrow">+</div>
+        <div class="node au"><span class="ico">📋</span>Task definition<small>the recipe: which image, how much CPU, which port</small></div>
+        <div class="arrow">+</div>
+        <div class="node go"><span class="ico">👷</span>Service<small>"keep 3 of these running, always"</small></div>
+      </div>
+      <p>You will use the <b>Fargate</b> flavour of ECS. With Fargate there are no servers for you to manage. You say what to run, and AWS finds somewhere to run it.</p>
+      <h3>The cluster</h3>
+      <p>Create <code>cluster.tf</code> in <code>infra</code>:</p>
+      <code-block lang="hcl" file="~/workshop/infra/cluster.tf" src="solutions/capstone-1/cluster.tf"></code-block>
+      <h3>The task definition</h3>
+      <p>This file has three parts. Create <code>task.tf</code>, then read the notes below it.</p>
+      <code-block lang="hcl" file="~/workshop/infra/task.tf" src="solutions/capstone-1/task.tf"></code-block>
+      <div class="table-wrap">
+      <table>
+        <tr><th>Part</th><th>In plain words</th></tr>
+        <tr><td><b>The role</b></td><td>ECS has to pull your image from ECR and write logs for you. It needs your permission to do that. The role says "the ECS tasks service may act with these rights", and the attached policy lists the rights.</td></tr>
+        <tr><td><b>The log group</b></td><td>Anything your container prints goes here, in CloudWatch. When a container will not start, this is the first place to look.</td></tr>
+        <tr><td><b>The task definition</b></td><td>Which image to run, how big (a quarter of a CPU and 512 MB), and which port the container listens on. There is that <b>3000</b> again.</td></tr>
+      </table>
+      </div>
+      <div class="callout look">
+        <b class="t">Terraform connects the dots for you</b>
+        <p>Find this line: <code>image = "${aws_ecr_repository.app.repository_url}:latest"</code>. You never typed the repository address. Terraform reads it from the resource you made in step 4. This also tells Terraform the order: registry first, task definition second.</p>
+      </div>
+      <p>Plan, read, then apply:</p>
+      <code-block lang="bash">
+cd ~/workshop/infra
+terraform plan
+terraform apply
+      </code-block>
+      <p>Expect <code>Resources: 5 added</code>. <b>Scout:</b> open <a href="https://us-west-2.console.aws.amazon.com/ecs/v2/clusters?region=us-west-2" target="_blank" rel="noopener">ECS in the console</a>. Find <code>[[TEAM]]-cluster</code> under Clusters and <code>[[TEAM]]-sleigh-list</code> under Task definitions.</p>
+      <div class="quiz">
+        <h4>Elf check</h4>
+        <p class="q">You have a cluster and a task definition. How many containers are running right now?</p>
+        <button type="button">One</button>
+        <button type="button">Three</button>
+        <button type="button" data-right>Zero</button>
+        <p class="explain">Zero. A task definition is only a recipe, and a cluster is only an empty home. Nothing runs until something asks for it. That something is the service, which you build next.</p>
+      </div>
+      <div class="callout team"><b class="t">🔔 Rotation bell</b><p>Swap jobs again.</p></div>
+      <label class="done-row"><input type="checkbox"> Our cluster and task definition exist</label>
+    </section>
+
+    <!-- ============ STEP 7 ============ -->
+    <section class="paper step" id="service" data-short="The service (first trap)">
+      <div class="step-head"><div class="step-num">7</div><h2>The service: keep three running</h2><span class="pill gold">⏱ 20 min</span></div>
+      <p>A <b>service</b> is a promise: "keep this many copies of the task running". If one dies, the service starts a replacement without anyone waking up.</p>
+      <p>Create <code>service.tf</code> with the smallest service that could possibly work:</p>
+      <code-block lang="hcl" file="~/workshop/infra/service.tf">
+# The service keeps 3 copies of our task running at all times
+resource "aws_ecs_service" "app" {
+  name            = "${var.team}-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  launch_type     = "FARGATE"
+  desired_count   = 3
+}
+      </code-block>
+      <code-block lang="bash" file="Terminal (this one will fail, on purpose)">
+terraform apply
+      </code-block>
+      <div class="callout grinch">
+        <b class="t">The Grinch says hello</b>
+        <p>The plan looks fine, you type <code>yes</code>, and then:</p>
+        <code-block lang="text" file="The error">
+Error: creating ECS Service ([[TEAM]]-service): ... InvalidParameterException:
+Network Configuration must be provided when networkMode 'awsvpc' is specified.
+        </code-block>
+        <p>This is your first real cloud error. Read it slowly before you scroll on. It tells you exactly what is missing.</p>
+      </div>
+      <p>In the task definition you chose <code>network_mode = "awsvpc"</code>. That gives every task its own network card. A network card has to be plugged in <i>somewhere</i>, and you have not said where. The service needs to know which <b>subnets</b> to use.</p>
+      <p>Your account already has a default network (a VPC) with one public subnet in each availability zone. You only need to look them up. Create <code>network.tf</code>:</p>
+      <code-block lang="hcl" file="~/workshop/infra/network.tf" src="solutions/capstone-1/network.tf"></code-block>
+      <div class="callout why">
+        <b class="t"><code>resource</code> makes things. <code>data</code> looks things up.</b>
+        <p>Four teams share this network. Because you used <code>data</code> blocks, Terraform will only ever read it. Nobody's <code>terraform destroy</code> can delete the network out from under another team.</p>
+      </div>
+      <p>Now <b>replace everything</b> in <code>service.tf</code> with this version. The new part is the <code>network_configuration</code> block:</p>
+      <code-block lang="hcl" file="~/workshop/infra/service.tf" src="solutions/capstone-1/service.tf"></code-block>
+      <code-block lang="bash">
+terraform apply
+      </code-block>
+      <p><b>Scout:</b> in the ECS console open <code>[[TEAM]]-cluster</code>, then <code>[[TEAM]]-service</code>, then the <b>Tasks</b> tab. Within a minute, three tasks go from <i>Provisioning</i> to <i>Running</i>.</p>
+      <shot src="c1-ecs-tasks.webp" alt="ECS console showing the team service with three running tasks" caption="Three running tasks. (Your list will be shorter. This team had already replaced some tasks.)"></shot>
+      <div class="callout look">
+        <b class="t">Try to visit one</b>
+        <p>Click a running task. Under <b>Configuration</b> it has a public IP. Try opening <code>http://that-ip:3000</code> in your browser. It will hang and time out. The container is running, but a firewall is in the way. Even if you got through, you would have three different addresses that change every time a task restarts. You need one stable front door.</p>
+      </div>
+      <label class="done-row"><input type="checkbox"> We met the error, fixed it, and have 3 running tasks</label>
+    </section>
+
+    <!-- ============ STEP 8 ============ -->
+    <section class="paper step" id="alb" data-short="The front door (Grinch territory)">
+      <div class="step-head"><div class="step-num">8</div><h2>The front door</h2><span class="pill gold">⏱ 35 min</span></div>
+      <p>An <b>Application Load Balancer</b> (ALB) gives you one public address and spreads visitors across your healthy containers. It has four parts, and the Grinch has hidden a trap between each of them. That is on purpose: you will learn each part by seeing what breaks without it.</p>
+      <div class="arch">
+        <div class="node"><span class="ico">🌍</span>Browser</div>
+        <div class="arrow">→</div>
+        <div class="node au"><span class="ico">👂</span>Listener<small>"I answer port 80"</small></div>
+        <div class="arrow">→</div>
+        <div class="node au"><span class="ico">📇</span>Target group<small>the list of healthy containers</small></div>
+        <div class="arrow">→</div>
+        <div class="node go"><span class="ico">🧝</span>Tasks<small>port 3000</small></div>
+      </div>
+
+      <h3>Part A · The load balancer and its firewall</h3>
+      <p>Create <code>loadbalancer.tf</code>. A <b>security group</b> is a firewall. This one lets the whole internet reach the load balancer on port 80 (plain web traffic).</p>
+      <code-block lang="hcl" file="~/workshop/infra/loadbalancer.tf" src="solutions/capstone-1/loadbalancer.tf"></code-block>
+      <code-block lang="bash">
+terraform apply
+      </code-block>
+      <p>Load balancers take <b>two to three minutes</b> to create. Do the elf check while you wait.</p>
+      <div class="quiz">
+        <h4>Elf check · while you wait</h4>
+        <p class="q">Your three tasks are spread across three availability zones (separate data centres). Why does that matter on Christmas Eve?</p>
+        <button type="button">It makes the page load three times faster</button>
+        <button type="button" data-right>If one data centre has a bad night, two copies of the app keep running</button>
+        <button type="button">AWS charges less for it</button>
+        <p class="explain">Exactly. The old server under the stairs was a single point of failure. Three zones means a whole building can lose power and the Sleigh List stays up.</p>
+      </div>
+      <p>When the apply finishes it prints an <code>app_url</code>. Open it in a new browser tab.</p>
+      <div class="callout grinch">
+        <b class="t">Trap 1: nobody is listening</b>
+        <p>The browser says it <b>cannot connect</b>. The load balancer exists, but you have not told it to listen on any port, or where to send people. An ALB with no listener is a door with no doorbell.</p>
+      </div>
+
+      <h3>Part B · A listener and a target group</h3>
+      <p>Create <code>targets.tf</code>:</p>
+      <code-block lang="hcl" file="~/workshop/infra/targets.tf" src="solutions/capstone-1/targets.tf"></code-block>
+      <p>The target group is an empty list until your service signs its tasks up. Tell the service to do that. <b>Replace everything</b> in <code>service.tf</code>. The new part is the <code>load_balancer</code> block:</p>
+      <code-block lang="hcl" file="~/workshop/infra/service.tf" src="solutions/capstone-1/service.step7b.tf.txt"></code-block>
+      <code-block lang="bash">
+terraform apply
+      </code-block>
+      <p>Wait one minute, then refresh the app URL.</p>
+      <div class="callout grinch">
+        <b class="t">Trap 2: 503, then 504</b>
+        <p>Now the load balancer answers, but with an error page: <b>503 Service Temporarily Unavailable</b> or <b>504 Gateway Time-out</b>. That is progress. The door opens, but there is nobody healthy behind it.</p>
+      </div>
+      <p><b>Scout, this one is yours.</b> In the console go to <a href="https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#TargetGroups:" target="_blank" rel="noopener">EC2 → Target groups</a>, open <code>[[TEAM]]-tg</code>, and look at the <b>Targets</b> tab.</p>
+      <shot src="c1-targets-unhealthy.webp" alt="Target group with targets marked Unhealthy and the detail 'Request timed out'" caption="The targets are registered, but unhealthy. The reason column is the clue."></shot>
+      <p><b>Stop and talk about it for two minutes before opening the hints.</b> The health check is a request from the load balancer to each task on port 3000. It "timed out". What could stand between the load balancer and a task?</p>
+      <details class="hint">
+        <summary>Hint 1</summary>
+        <div class="hint-body"><p>"Timed out" is different from "refused". Refused means something answered "no". Timed out means the request vanished and nothing answered at all. What kind of thing silently drops network traffic?</p></div>
+      </details>
+      <details class="hint">
+        <summary>Hint 2</summary>
+        <div class="hint-body"><p>A firewall. You gave the load balancer a security group. Which security group did you give the <i>tasks</i>? Look at <code>network_configuration</code> in <code>service.tf</code>.</p></div>
+      </details>
+      <details class="hint solution">
+        <summary>The answer</summary>
+        <div class="hint-body"><p>You never chose a security group for the tasks, so AWS gave them the network's <b>default</b> one. That group only accepts traffic from other members of itself. The load balancer is not a member, so its health checks are dropped. It is the same firewall that stopped you visiting a task directly in step 7.</p></div>
+      </details>
+
+      <h3>Part C · Let the load balancer in, and only the load balancer</h3>
+      <p><b>Replace everything</b> in <code>service.tf</code> one last time. There is a new security group at the top, and one new line inside <code>network_configuration</code>.</p>
+      <code-block lang="hcl" file="~/workshop/infra/service.tf" src="solutions/capstone-1/service.final.tf.txt"></code-block>
+      <div class="callout why">
+        <b class="t">The best line in this whole mission</b>
+        <p>Look at <code>security_groups = [aws_security_group.alb.id]</code> inside the <code>ingress</code> block. The source is not a list of IP addresses. It is <i>another security group</i>. It means: "accept port 3000 only from things that wear the load balancer's badge". The internet cannot reach your containers directly at all. Everything must come through the front door.</p>
+      </div>
+      <code-block lang="bash">
+terraform apply
+      </code-block>
+      <p>Changing the firewall makes ECS replace all three tasks, one batch at a time. This takes <b>three to four minutes</b>. Scout: keep refreshing the Targets tab and call out when all three say <b>Healthy</b>.</p>
+      <shot src="c1-targets-healthy.webp" alt="Target group showing 3 healthy targets in three zones" caption="Three healthy targets, in three different zones."></shot>
+      <p>Now refresh your app URL. If you closed it:</p>
+      <code-block lang="bash">
+terraform output app_url
+      </code-block>
+      <shot src="c1-app-live.webp" alt="Santa's Sleigh List live on the internet, served by an elf in us-west-2c on ECS Fargate" caption="Live on the internet. Send the link to another team."></shot>
+      <div class="callout win">
+        <b class="t">You did it</b>
+        <p>That address works for anyone, anywhere. Three containers, three data centres, one front door, all written as code.</p>
+      </div>
+      <details class="hint">
+        <summary>My browser shows a security warning or cannot connect</summary>
+        <div class="hint-body"><p>Your address starts with <code>http://</code>, not <code>https://</code>. Some browsers switch to https by themselves, and you have no listener on port 443. Type the full address including <code>http://</code>. (Adding real HTTPS needs a domain name and a certificate. It is a good stretch goal for Mission 2.)</p></div>
+      </details>
+      <div class="callout team"><b class="t">🔔 Rotation bell</b><p>Last swap. The new Driver gets the fun part.</p></div>
+      <label class="done-row"><input type="checkbox"> Our Sleigh List is live at the load balancer address</label>
+    </section>
+
+    <!-- ============ STEP 9 ============ -->
+    <section class="paper step" id="lap" data-short="Victory lap">
+      <div class="step-head"><div class="step-num">9</div><h2>Victory lap</h2><span class="pill gold">⏱ 10 min</span></div>
+      <p>You built it. Now prove to yourselves that it does what you promised Santa.</p>
+      <h3>1. Meet your elves</h3>
+      <p>At the bottom of your app, click <b>🔔 Ring the bell</b> a few times. The elf name and the zone change. Each click is a new request, and the load balancer hands each one to a different container. That is load balancing, and you can see it.</p>
+      <h3>2. Lose an elf</h3>
+      <p>Stop one task on purpose, and watch the service replace it. Keep the app open in another tab and keep ringing the bell while you do it.</p>
+      <code-block lang="bash">
+# Pick one running task and stop it
+TASK=$(aws ecs list-tasks --cluster $TEAM-cluster --query 'taskArns[0]' --output text)
+aws ecs stop-task --cluster $TEAM-cluster --task $TASK --query 'task.lastStatus' --output text
+
+# Watch the service notice and start a replacement (press Ctrl+C to stop watching)
+watch -n 5 "aws ecs describe-services --cluster $TEAM-cluster --services $TEAM-service --query 'services[0].[desiredCount,runningCount,pendingCount]' --output text"
+      </code-block>
+      <p>The three numbers are <i>wanted</i>, <i>running</i> and <i>starting</i>. You will see <code>3 2 1</code>, then <code>3 3 0</code>. The app never went down. Nobody was paged.</p>
+      <h3>3. Hire more elves</h3>
+      <p>Christmas Eve is coming. In <code>service.tf</code>, change <code>desired_count = 3</code> to <code>desired_count = 5</code>, then:</p>
+      <code-block lang="bash">
+cd ~/workshop/infra
+terraform plan
+      </code-block>
+      <p>Read the plan. One resource changes, marked with a yellow <code>~</code>, and Terraform shows <code>3 -&gt; 5</code>. Nothing is destroyed. Apply it and ring the bell until you have met five elves.</p>
+      <code-block lang="bash">
+terraform apply
+      </code-block>
+      <div class="quiz">
+        <h4>Final elf check</h4>
+        <p class="q">A teammate opens the console and changes the service to 2 tasks by hand. What happens the next time someone runs <code>terraform plan</code>?</p>
+        <button type="button">Terraform does not notice, because the console is separate</button>
+        <button type="button" data-right>Terraform notices the difference and plans to change it back to 5</button>
+        <button type="button">Terraform deletes the service</button>
+        <p class="explain">Terraform compares your code with what really exists. Your code is the truth, and Terraform will pull reality back to match it. This is why teams agree: if it was made with Terraform, change it with Terraform.</p>
+      </div>
+      <label class="done-row"><input type="checkbox"> We met our elves, lost one, and hired two more</label>
+    </section>
+
+    <!-- ============ STEP 10 ============ -->
+    <section class="paper step" id="debrief" data-short="Debrief and clean up">
+      <div class="step-head"><div class="step-num">10</div><h2>Debrief and clean up</h2><span class="pill gold">⏱ 10 min</span></div>
+      <h3>Tell the story back</h3>
+      <p>Go around the team. Each person explains one arrow of this picture in their own words. If someone gets stuck, that is the part to re-read before Mission 2.</p>
+      <div class="arch">
+        <div class="node"><span class="ico">📝</span>Dockerfile</div><div class="arrow">→</div>
+        <div class="node"><span class="ico">📦</span>Image in ECR</div><div class="arrow">→</div>
+        <div class="node au"><span class="ico">📋</span>Task definition</div><div class="arrow">→</div>
+        <div class="node go"><span class="ico">👷</span>Service × 3</div><div class="arrow">←</div>
+        <div class="node au"><span class="ico">🚪</span>Load balancer</div>
+      </div>
+      <p><b>Scribe:</b> save your error log. Mission 2 will ask you to present your hardest problem and how you solved it.</p>
+      <h3>Pack up the sleigh</h3>
+      <p>A load balancer and five containers cost money every hour. Everything you built is in your Terraform state, so one command removes all of it, and only yours:</p>
+      <code-block lang="bash">
+cd ~/workshop/infra
+terraform destroy
+      </code-block>
+      <p>Read the plan (it should say <b>12 to destroy</b>), then type <code>yes</code>. It takes about three minutes.</p>
+      <div class="callout warn">
+        <b class="t">Keep the workshop</b>
+        <p>Do <b>not</b> delete your Santa's Workshop. You will use it again in Mission 2, and your code lives there. Your instructor will tell you when it is time to remove it (see the <a href="guides/cleanup.html">cleanup guide</a>).</p>
+      </div>
+      <details class="hint">
+        <summary>Bonus, if you finish early: build it again by hand</summary>
+        <div class="hint-body"><p>Before you destroy, try creating a second ECR repository and a second ECS cluster with the AWS console only (name them <code>[[TEAM]]-by-hand</code>). Count the clicks and the screens. Then delete them by hand too. Now imagine doing that for forty resources, the same way, four times. That is the case for Terraform.</p></div>
+      </details>
+      <label class="done-row"><input type="checkbox"> terraform destroy finished, and our workshop is still there for Mission 2</label>
+    </section>
+
+    <section class="paper candy" id="mission-complete" hidden>
+      <h2>🎄 Mission 1 complete!</h2>
+      <p>The Sleigh List has left the basement. You containerized an app, stored it in a registry, ran it on Fargate across three zones, put a load balancer in front, debugged three real failures, and described all of it as code.</p>
+      <p>Next, you stop delivering by hand and build the factory.</p>
+      <p><a class="btn green" href="capstone-2.html">🏭 On to Mission 2</a></p>
+    </section>
+  </main>
+</div>

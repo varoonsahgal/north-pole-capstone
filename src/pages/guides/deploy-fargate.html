@@ -1,0 +1,142 @@
+<!-- title: Deploy to Fargate | nav: guides | desc: Run your container on ECS Fargate from the console, then let the pipeline deploy every build. -->
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Mission 2, goals 5 and 6</span>
+  <h1>Deploy to <em>Fargate</em></h1>
+  <p class="lead">First get the app running on ECS by hand. Then add a Deploy stage so the pipeline rolls out every new image.</p>
+  {{hills}}
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>Part 1 · ECS in the console</h2>
+    <p>You built exactly this with Terraform in Mission 1. Doing it by hand shows you the same pieces from the other side. Have your Scribe write down every value you choose. You will type them into Terraform later.</p>
+    <p><b>Before you start:</b> an image in your ECR repository <code>[[TEAM]]-sleigh-list</code>. Copy its <b>URI</b> from the ECR console.</p>
+    <div class="callout"><p>The console changes often. Use the field names here as a guide, not as exact labels.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">1</div><h2>Create a cluster</h2></div>
+    <ol class="do">
+      <li>Open <a href="https://us-west-2.console.aws.amazon.com/ecs/v2/clusters?region=us-west-2" target="_blank" rel="noopener">ECS → Clusters</a> and choose <b>Create cluster</b>.</li>
+      <li><b>Cluster name:</b> <code>[[TEAM]]-cluster</code>.</li>
+      <li>Infrastructure: <b>AWS Fargate (serverless)</b> only. Create.</li>
+    </ol>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">2</div><h2>Create a task definition</h2></div>
+    <p>Open <a href="https://us-west-2.console.aws.amazon.com/ecs/v2/create-task-definition?region=us-west-2" target="_blank" rel="noopener">ECS → Task definitions → Create new task definition</a>.</p>
+    <shot src="c2-ecs-taskdef-form.webp" alt="ECS Create new task definition form with family name, launch type, CPU, memory and role fields" caption="The task definition form. The settings below are the ones that matter."></shot>
+    <div class="table-wrap"><table>
+      <tr><th>Setting</th><th>Value</th><th>Why</th></tr>
+      <tr><td>Task definition family</td><td><code>[[TEAM]]-sleigh-list</code></td><td>The recipe's name</td></tr>
+      <tr><td>Launch type</td><td>AWS Fargate</td><td>No servers to manage</td></tr>
+      <tr><td>OS / Architecture</td><td>Linux/X86_64</td><td>Must match the machine that built the image</td></tr>
+      <tr><td>CPU / Memory</td><td>.25 vCPU / .5 GB</td><td>Plenty for a small web server</td></tr>
+      <tr><td>Task execution role</td><td>Create new role (or <code>ecsTaskExecutionRole</code> if it is offered)</td><td>Lets ECS pull from ECR and write logs</td></tr>
+      <tr><td>Container name</td><td><code>sleigh-list</code></td><td>Remember this exact name for the pipeline</td></tr>
+      <tr><td>Image URI</td><td>Your ECR image URI, ending in <code>:latest</code></td><td></td></tr>
+      <tr><td>Container port</td><td><b>3000</b>, TCP</td><td>nginx in your image listens on 3000</td></tr>
+    </table></div>
+    <p>Leave the rest and choose <b>Create</b>.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">3</div><h2>Create a service with a load balancer</h2></div>
+    <p>Open your cluster, go to the <b>Services</b> tab and choose <b>Create</b>.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Section</th><th>Setting</th><th>Value</th></tr>
+      <tr><td>Service details</td><td>Task definition family</td><td><code>[[TEAM]]-sleigh-list</code></td></tr>
+      <tr><td></td><td>Service name</td><td><code>[[TEAM]]-service</code></td></tr>
+      <tr><td>Compute</td><td>Launch type</td><td>Fargate</td></tr>
+      <tr><td>Deployment</td><td>Desired tasks</td><td>3</td></tr>
+      <tr><td>Networking</td><td>VPC and subnets</td><td>The default VPC, with at least two subnets</td></tr>
+      <tr><td></td><td>Security group</td><td>Create new: <code>[[TEAM]]-tasks-sg</code>, allowing TCP 3000</td></tr>
+      <tr><td></td><td><b>Public IP</b></td><td><b>Turned on</b></td></tr>
+      <tr><td>Load balancing</td><td>Type</td><td>Application Load Balancer, create new: <code>[[TEAM]]-alb</code></td></tr>
+      <tr><td></td><td>Listener</td><td>Create new: port 80, HTTP</td></tr>
+      <tr><td></td><td>Target group</td><td>Create new: <code>[[TEAM]]-tg</code>, HTTP, health check path <code>/health</code></td></tr>
+    </table></div>
+    <p>Choose <b>Create</b>. The service takes a few minutes to create the load balancer and start the tasks.</p>
+    <div class="callout warn">
+      <b class="t">The two classic mistakes</b>
+      <p><b>Public IP off.</b> The tasks start, cannot reach ECR to download the image, and stop with <code>CannotPullContainerError</code>.</p>
+      <p><b>Health check path left as <code>/</code> with the wrong port,</b> or a firewall that does not allow the load balancer through. The tasks run but are marked unhealthy and replaced, again and again.</p>
+    </div>
+    <h3>Check it</h3>
+    <ul>
+      <li>Service → <b>Tasks</b>: three tasks, Running.</li>
+      <li>Service → <b>Health and metrics</b>: the target group shows healthy targets.
+        <shot src="c1-ecs-service.webp" alt="ECS service Health and metrics tab showing 3 healthy targets in the target group" caption="'3 Healthy' on the service's health tab is what you are waiting for."></shot>
+      </li>
+      <li>Open the load balancer's DNS name (EC2 → Load balancers) with <code>http://</code> in front.</li>
+    </ul>
+    <details class="hint"><summary>Tighten the firewall (recommended)</summary><div class="hint-body"><p>The wizard's new security group may allow port 3000 from anywhere. Edit <code>[[TEAM]]-tasks-sg</code> so the source of the port 3000 rule is the <b>load balancer's security group</b> rather than <code>0.0.0.0/0</code>. Then only the load balancer can reach your containers, as in Mission 1.</p></div></details>
+  </section>
+
+  <section class="paper candy">
+    <h2>Part 2 · Let the pipeline deploy</h2>
+    <p><b>Before you start:</b> the pipeline from the <a href="cicd-pipeline.html">CI/CD guide</a>, with green Source and Build stages.</p>
+    <div class="arch">
+      <div class="node au"><span class="ico">🔨</span>Build<small>writes imagedefinitions.json</small></div><div class="arrow">→</div>
+      <div class="node au"><span class="ico">🚀</span>Deploy stage<small>reads the file</small></div><div class="arrow">→</div>
+      <div class="node"><span class="ico">📋</span>New task definition<small>same recipe, new image</small></div><div class="arrow">→</div>
+      <div class="node go"><span class="ico">🔄</span>Rolling update<small>new tasks in, old tasks out</small></div>
+    </div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">4</div><h2>Tell the Deploy stage which image to use</h2></div>
+    <p>The ECS deploy action needs a small file from the build, named <code>imagedefinitions.json</code>, that says "put <i>this image</i> in the container named <i>this</i>". Add two things to your <code>buildspec.yml</code>: one more command at the end of <code>post_build</code>, and an <code>artifacts</code> section at the bottom.</p>
+    <code-block lang="yaml" file="buildspec.yml (the end of the file)">
+  post_build:
+    commands:
+      - docker push $REPO_URI:$IMAGE_TAG
+      - docker push $REPO_URI:latest
+      # The ECS deploy stage reads this file to learn which image to roll out
+      - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$REPO_URI:$IMAGE_TAG" > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+    </code-block>
+    <div class="callout look"><p><code>CONTAINER_NAME</code> must be exactly the container name in your task definition (<code>sleigh-list</code>). If the names differ, the deploy fails and says the container was not found.</p></div>
+    <p>Do not push yet. Add the stage first.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">5</div><h2>Add the Deploy stage</h2></div>
+    <ol class="do">
+      <li>Open your pipeline and choose <b>Edit</b>.</li>
+      <li>Below the Build stage choose <b>Add stage</b>. Name it <code>Deploy</code>.</li>
+      <li>In the new stage choose <b>Add action group</b>:
+        <ul>
+          <li>Action name: <code>ECS</code></li>
+          <li>Action provider: <b>Amazon ECS</b></li>
+          <li>Input artifacts: <b>BuildArtifact</b></li>
+          <li>Cluster name: <code>[[TEAM]]-cluster</code></li>
+          <li>Service name: <code>[[TEAM]]-service</code></li>
+          <li>Image definitions file: <code>imagedefinitions.json</code></li>
+        </ul>
+      </li>
+      <li>Choose <b>Done</b>, then <b>Save</b> the pipeline.</li>
+    </ol>
+    <p>Now commit and push your buildspec change.</p>
+    <shot src="c2-pipeline.webp" alt="A pipeline with Source, Build and Deploy stages all green" caption="Source, Build, Deploy. The Deploy stage waits until the new tasks are healthy, so it takes three to four minutes."></shot>
+    <details class="hint"><summary>The Deploy stage fails with an access error</summary><div class="hint-body"><p>The pipeline's service role needs to update ECS and to pass the task execution role to it. When the console creates the role it usually includes this. If yours does not, add the ECS permissions and <code>iam:PassRole</code> to the pipeline's role in IAM.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">6</div><h2>Prove it</h2></div>
+    <ol class="do">
+      <li>Open your app and note the <b>build</b> label in the footer.</li>
+      <li>Change <code>BANNER</code> in <code>src/config.js</code>, commit and push.</li>
+      <li>Watch all three stages go green.</li>
+      <li>Reload the app: new banner, new build label.</li>
+    </ol>
+    <div class="callout win"><p>That is continuous delivery. A change travels from a keyboard to production in about four minutes, the same way every time.</p></div>
+    <div class="callout why">
+      <b class="t">Watch a rolling update happen</b>
+      <p>During a deploy, keep clicking <b>🔔 Ring the bell</b>. For a minute you will see elves on the old build and elves on the new build answering side by side. ECS starts new tasks, waits for them to be healthy, and only then stops the old ones. Visitors never see an outage.</p>
+    </div>
+  </section>
+</div>

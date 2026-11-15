@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Guides · North Pole Cloud Capstone</title>
+<meta name="description" content="Step-by-step guides with screenshots for the North Pole Cloud Capstone.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="guides" data-root="../">
+<canvas id="snow" aria-hidden="true"></canvas>
+<header class="topbar">
+  <a class="brand" href="../index.html"><span aria-hidden="true">🎄</span> North Pole <b>Cloud Capstone</b></a>
+  <nav aria-label="Main"><a href="../index.html">Home</a><a href="../capstone-1.html">Mission 1</a><a href="../capstone-2.html">Mission 2</a><a href="../guides/index.html" class="on">Field Guides</a></nav>
+  <div class="tools">
+    <button id="team-chip" class="chip" type="button" title="Change team">🦌 <span id="team-chip-name">Pick your team</span></button>
+    <button id="snow-toggle" class="chip icon" type="button" aria-pressed="true" title="Toggle snow">❄️</button>
+  </div>
+</header>
+<div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+<section class="hero small-hero">
+  <span class="kicker">Help when you are stuck</span>
+  <h1>Field <em>Guides</em></h1>
+  <p class="lead">Mission 2 gives you goals and hints. These guides give you the steps. Use them when a whole topic is new, not as the first thing you reach for.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/><path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/></svg>
+</section>
+<div class="wrap">
+  <h2 class="section-title">Get set up</h2>
+  <div class="grid">
+    <a class="card gold" href="workshop.html"><span class="emoji">🧰</span><span class="meta">Both missions</span><h3>Santa's Workshop</h3><p>Launch and use your team's VS Code in the browser. The replacement for Cloud9.</p></a>
+    <a class="card green" href="troubleshooting.html"><span class="emoji">😈</span><span class="meta">Both missions</span><h3>Grinch Field Guide</h3><p>Common errors, what they mean, and how to fix them.</p></a>
+    <a class="card" href="cleanup.html"><span class="emoji">🧹</span><span class="meta">Both missions</span><h3>Cleanup</h3><p>Remove everything you built, in the right order, and check nothing is left.</p></a>
+  </div>
+  <h2 class="section-title">Mission 2 walk-throughs</h2>
+  <div class="grid">
+    <a class="card" href="serverless-api.html"><span class="emoji">⚡</span><span class="meta">Goals 2 and 3</span><h3>The Gift API</h3><p>S3, Lambda and API Gateway. Contains one deliberate mistake for you to find.</p></a>
+    <a class="card gold" href="cicd-pipeline.html"><span class="emoji">🚚</span><span class="meta">Goal 6</span><h3>CI/CD Pipeline</h3><p>Connect GitHub, build your image with CodeBuild, and run it all from CodePipeline.</p></a>
+    <a class="card blue" href="deploy-fargate.html"><span class="emoji">🛷</span><span class="meta">Goals 5 and 6</span><h3>Deploy to Fargate</h3><p>ECS in the console, then a Deploy stage that rolls out every build.</p></a>
+    <a class="card green" href="terraform-team.html"><span class="emoji">🧱</span><span class="meta">Goal 7</span><h3>Terraform for Teams</h3><p>Shared state in S3, no secrets in git, and living alongside a pipeline.</p></a>
+    <a class="card blue" href="deploy-eks.html"><span class="emoji">☸️</span><span class="meta">Goals 8 and 9</span><h3>Deploy to EKS</h3><p>Create a cluster safely in a shared account, deploy by hand, then from the pipeline.</p></a>
+    <a class="card" href="presentation.html"><span class="emoji">🎤</span><span class="meta">Goal 10</span><h3>Present to Santa</h3><p>A slide-by-slide outline for a ten-minute leadership presentation.</p></a>
+  </div>
+</div>
+
+<footer class="foot">
+  <p>🎁 Built for the Cloud Foundations cohort · Be kind to the elves: tear down what you build.</p>
+  <p><a href="../guides/cleanup.html">Cleanup guide</a> · <a href="../guides/troubleshooting.html">Grinch field guide</a> · <a href="../instructor.html">Instructor notes</a></p>
+</footer>
+<dialog id="team-dialog">
+  <form method="dialog">
+    <h2>🦌 Which reindeer team are you?</h2>
+    <p>Your instructor assigns the teams. Your pick personalises every command on this site, so teams never step on each other.</p>
+    <div class="team-grid" id="team-grid"></div>
+    <p class="small">Stored only in this browser. You can change it any time from the top bar.</p>
+    <button class="btn ghost" value="cancel">Close</button>
+  </form>
+</dialog>
+<div id="lightbox" hidden><img alt=""></div>
+<script src="../assets/js/site.js"></script>
+</body>
+</html>

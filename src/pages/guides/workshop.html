@@ -1,0 +1,83 @@
+<!-- title: Santa's Workshop | nav: guides | desc: Launch and use the team's browser-based VS Code environment (the Cloud9 replacement). -->
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Both missions</span>
+  <h1>Santa's <em>Workshop</em></h1>
+  <p class="lead">Your team's shared development machine: VS Code in a browser tab, with Docker, Terraform and the AWS tools ready to use.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/><path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/></svg>
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>What it is</h2>
+    <p>AWS Cloud9 is retired for new customers, so this course uses its own replacement. One command creates all of this for your team:</p>
+    <div class="arch">
+      <div class="node"><span class="ico">🧑‍💻</span>Your browser<small>all four of you</small></div><div class="arrow">→</div>
+      <div class="node au"><span class="ico">🔒</span>CloudFront<small>HTTPS address</small></div><div class="arrow">→</div>
+      <div class="node go"><span class="ico">🧰</span>EC2 server<small>VS Code + Docker + Terraform</small></div><div class="arrow">→</div>
+      <div class="node"><span class="ico">🪪</span>IAM role<small>signs you in to AWS</small></div>
+    </div>
+    <div class="table-wrap"><table>
+      <tr><th>Already installed</th><th>Good to know</th></tr>
+      <tr><td>Docker, Terraform, AWS CLI, git, kubectl, eksctl, helm, jq</td><td>The server is a <code>t3.large</code> with a 40 GB disk, running Amazon Linux 2023.</td></tr>
+      <tr><td>The variable <code>$TEAM</code> holds your team name</td><td>The region is already set to <code>us-west-2</code>.</td></tr>
+      <tr><td>AWS credentials (through the server's role)</td><td>There are no access keys on the machine, and you should not add any.</td></tr>
+    </table></div>
+  </section>
+
+  <section class="paper">
+    <h2>Launch it</h2>
+    <p><b>One person per team does this, once.</b></p>
+    <ol class="do">
+      <li>Sign in to the AWS console. Check the region (top right) is <b>United States (Oregon)</b>.</li>
+      <li>Open <b>CloudShell</b>: the terminal icon (<code>&gt;_</code>) in the top bar.
+        <shot src="ws-cloudshell.webp" alt="AWS CloudShell open in the console with the launch command and its result" caption="CloudShell is a small terminal built in to the AWS console."></shot>
+      </li>
+      <li>Run the launch command with your team name:
+        <code-block lang="bash" file="AWS CloudShell">
+curl -fsSL https://varoonsahgal.github.io/north-pole-capstone/workshop/launch.sh | bash -s -- [[TEAM]]
+        </code-block>
+      </li>
+      <li>Wait about 8 minutes. It prints your workshop <b>URL</b> and <b>password</b>. Share both with your team, and with nobody else.</li>
+    </ol>
+    <div class="callout">
+      <b class="t">What is that command doing?</b>
+      <p>It downloads a small script that asks <b>CloudFormation</b> (AWS's own infrastructure-as-code service) to build a stack named <code>[[TEAM]]-workshop</code>. You can watch it in the <a href="https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2" target="_blank" rel="noopener">CloudFormation console</a>. Running the command a second time is safe: it just prints the URL and password again.</p>
+    </div>
+    <shot src="ws-cfn-stack.webp" alt="CloudFormation console showing the team workshop stack with status CREATE_COMPLETE" caption="Your workshop is a CloudFormation stack. CREATE_COMPLETE means it is ready."></shot>
+  </section>
+
+  <section class="paper">
+    <h2>Use it</h2>
+    <ol class="do">
+      <li>Open the URL and enter the password.
+        <shot src="ws-login.webp" alt="The code-server login page asking for a password" caption="The sign-in page."></shot>
+      </li>
+      <li>Open a terminal: <b>☰ menu → Terminal → New Terminal</b>, or press <kbd>Ctrl</kbd> + <kbd>`</kbd>.</li>
+      <li>Create and edit files from the file list on the left. Files save themselves after a moment.</li>
+    </ol>
+    <shot src="ws-ide.webp" alt="VS Code in the browser with a file list, an editor and a terminal" caption="Files on the left, editor in the middle, terminal at the bottom."></shot>
+    <h3>See a web app that is running in the workshop</h3>
+    <p>If something in the workshop listens on a port (for example a container started with <code>-p 3000:3000</code>), you can open it in your browser. Take your workshop address up to <code>.cloudfront.net</code> and add <code>/proxy/3000/</code>, including the final slash.</p>
+    <h3>Working as a team</h3>
+    <ul>
+      <li>Everyone sees the same files and can open their own terminal.</li>
+      <li>It is <b>not</b> live co-editing. If two people edit one file, the last save wins. Agree who is typing.</li>
+      <li>In Mission 2, commit to git often. Git is how the two tracks share work safely.</li>
+    </ul>
+  </section>
+
+  <section class="paper">
+    <h2>If something goes wrong</h2>
+    <details class="hint"><summary>We lost the URL or the password</summary><div class="hint-body"><p>Run the launch command again in CloudShell. It will not build anything new. It just prints them again. The password is also stored in <b>Secrets Manager</b> as <code>[[TEAM]]-workshop-password</code>.</p></div></details>
+    <details class="hint"><summary>The launch command failed</summary><div class="hint-body"><p>Read the last lines of the output. If it mentions a stack in <code>ROLLBACK_COMPLETE</code>, open CloudFormation, select <code>[[TEAM]]-workshop</code>, look at the <b>Events</b> tab for the first red line, then delete the stack and run the command again. If it says the region is wrong, switch the console to Oregon and open CloudShell again.</p></div></details>
+    <details class="hint"><summary>The page will not load, or the terminal keeps disconnecting</summary><div class="hint-body"><p>Check the address starts with <code>https://</code> and ends in <code>.cloudfront.net</code> (plus the folder part). Some company networks block WebSockets. Try another browser, or disconnect from the VPN and try again. Tell your instructor if it persists.</p></div></details>
+    <details class="hint"><summary>Paste does not work in the terminal</summary><div class="hint-body"><p>The first time you paste, the browser asks for permission to read your clipboard. Choose <b>Allow</b>. You can also right-click and choose Paste, or use <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd>.</p></div></details>
+    <details class="hint"><summary>"no space left on device"</summary><div class="hint-body"><p>Docker images pile up. Free the space with <code>docker system prune -af</code> and check with <code>df -h /</code>.</p></div></details>
+    <details class="hint"><summary>"docker: permission denied" or a tool is missing</summary><div class="hint-body"><p>Open a <b>new</b> terminal. If that does not help, the setup may not have finished. Ask your instructor to check <code>/var/log/workshop-setup.log</code> on the server.</p></div></details>
+    <h3>Removing the workshop</h3>
+    <p>Only when your instructor says both missions are over. From CloudShell:</p>
+    <code-block lang="bash" file="AWS CloudShell">
+aws cloudformation delete-stack --stack-name [[TEAM]]-workshop --region us-west-2
+    </code-block>
+    <div class="callout warn"><p>This deletes the server and every file on it. Anything not pushed to GitHub is gone. Destroy your Terraform resources first, because the state file for Mission 1 lives on this server. See the <a href="cleanup.html">cleanup guide</a>.</p></div>
+  </section>
+</div>

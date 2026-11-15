@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cleanup · North Pole Cloud Capstone</title>
+<meta name="description" content="Remove everything you built in the capstone, in the right order, and check nothing is left.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="guides" data-root="../">
+<canvas id="snow" aria-hidden="true"></canvas>
+<header class="topbar">
+  <a class="brand" href="../index.html"><span aria-hidden="true">🎄</span> North Pole <b>Cloud Capstone</b></a>
+  <nav aria-label="Main"><a href="../index.html">Home</a><a href="../capstone-1.html">Mission 1</a><a href="../capstone-2.html">Mission 2</a><a href="../guides/index.html" class="on">Field Guides</a></nav>
+  <div class="tools">
+    <button id="team-chip" class="chip" type="button" title="Change team">🦌 <span id="team-chip-name">Pick your team</span></button>
+    <button id="snow-toggle" class="chip icon" type="button" aria-pressed="true" title="Toggle snow">❄️</button>
+  </div>
+</header>
+<div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Both missions</span>
+  <h1>Leave No <em>Trace</em></h1>
+  <p class="lead">Clusters and load balancers cost money every hour, whether or not anyone is using them. Cleaning up is part of the job.</p>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/><path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/></svg>
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>The golden rule</h2>
+    <p><b>Remove things the same way you made them,</b> and in the opposite order.</p>
+    <div class="table-wrap"><table>
+      <tr><th>If you made it with…</th><th>Remove it with…</th></tr>
+      <tr><td>Terraform</td><td><code>terraform destroy</code>, from the same folder, with the same state</td></tr>
+      <tr><td><code>kubectl apply</code></td><td><code>kubectl delete</code></td></tr>
+      <tr><td><code>eksctl create cluster</code></td><td><code>eksctl delete cluster</code></td></tr>
+      <tr><td>The console, by hand</td><td>The console, by hand</td></tr>
+      <tr><td>The launch command (your workshop)</td><td>Deleting its CloudFormation stack, <b>last of all</b></td></tr>
+    </table></div>
+    <div class="callout team"><p>Only ever delete things named <code>[[TEAM]]-…</code>. If you are not sure something is yours, ask before you delete it.</p></div>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">1</div><h2>After Mission 1</h2></div>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">cd ~/workshop/infra
+terraform destroy</code></pre></div>
+    <p>Read the plan, type <code>yes</code>, and wait about three minutes. <b>Keep your workshop.</b> You need it for Mission 2.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">2</div><h2>After Mission 2</h2></div>
+    <p>Work through these in order. Each step removes something that the next step depends on being gone.</p>
+    <h3>a. Kubernetes first</h3>
+    <p>The Kubernetes service created a load balancer that neither Terraform nor eksctl knows about. Let Kubernetes remove it, then delete the cluster (about ten minutes).</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">kubectl delete service sleigh-list
+kubectl delete deployment sleigh-list
+eksctl delete cluster --name $TEAM-eks --region us-west-2</code></pre></div>
+    <h3>b. Then Terraform</h3>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">cd ~/workshop/YOUR-REPO/terraform
+terraform destroy</code></pre></div>
+    <h3>c. Then anything made by hand</h3>
+    <p>If you built resources in the console (goals 2, 5 and 6) and never replaced them with Terraform, delete them in the console now. Work backwards: pipeline, build project, ECS service, load balancer, target group, task definition, cluster, API, function, bucket, and the IAM roles that were created for them.</p>
+    <h3>d. Then the state bucket and the connection</h3>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+
+# The bucket has versioning on, so every old version must be deleted before the bucket can go
+aws s3api delete-objects --bucket $TEAM-tfstate-$ACCOUNT --delete "$(aws s3api list-object-versions \
+  --bucket $TEAM-tfstate-$ACCOUNT --query '{Objects: [Versions, DeleteMarkers][][].{Key: Key, VersionId: VersionId}}' --output json)"
+aws s3 rb s3://$TEAM-tfstate-$ACCOUNT</code></pre></div>
+    <p>If you created the GitHub connection by hand, delete it under <b>Developer Tools → Settings → Connections</b>. On GitHub, you can remove the <b>AWS Connector</b> app under <b>Settings → Applications</b>.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">3</div><h2>Check for leftovers</h2></div>
+    <p>This command only looks. It lists everything in the region whose name starts with your team name.</p>
+    <div class="code"><div class="code-head"><span class="code-file">Terminal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">curl -fsSL https://varoonsahgal.github.io/north-pole-capstone/workshop/leftovers.sh | bash -s -- [[TEAM]]</code></pre></div>
+    <p>Before the final step you should see only your workshop: the <code>[[TEAM]]-workshop</code> stack, its role and its security group. A few <b>CloudWatch log groups</b> may also be listed. AWS services create those by themselves. They cost almost nothing, and you can delete them in the CloudWatch console.</p>
+  </section>
+
+  <section class="paper">
+    <div class="step-head"><div class="step-num">4</div><h2>Last of all: the workshop</h2></div>
+    <div class="callout warn">
+      <b class="t">Wait for your instructor, and push first</b>
+      <p>Deleting the workshop deletes every file on it. Make sure your code is pushed to GitHub. Make sure steps 1 to 3 are finished, because the tools and the Mission 1 state file live on this server.</p>
+    </div>
+    <p>From <b>CloudShell</b> in the AWS console (not from the workshop itself):</p>
+    <div class="code"><div class="code-head"><span class="code-file">AWS CloudShell</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-bash">aws cloudformation delete-stack --stack-name [[TEAM]]-workshop --region us-west-2
+aws cloudformation wait stack-delete-complete --stack-name [[TEAM]]-workshop --region us-west-2 &amp;&amp; echo "Workshop removed"</code></pre></div>
+    <p>It takes about five minutes. Run the leftovers check once more. The goal is this line:</p>
+    <div class="code output"><div class="code-head"><span class="code-file">The goal</span><button class="copy" type="button">Copy</button></div><pre><code class="lang-text">Nothing found. The North Pole is spotless.</code></pre></div>
+  </section>
+</div>
+
+<footer class="foot">
+  <p>🎁 Built for the Cloud Foundations cohort · Be kind to the elves: tear down what you build.</p>
+  <p><a href="../guides/cleanup.html">Cleanup guide</a> · <a href="../guides/troubleshooting.html">Grinch field guide</a> · <a href="../instructor.html">Instructor notes</a></p>
+</footer>
+<dialog id="team-dialog">
+  <form method="dialog">
+    <h2>🦌 Which reindeer team are you?</h2>
+    <p>Your instructor assigns the teams. Your pick personalises every command on this site, so teams never step on each other.</p>
+    <div class="team-grid" id="team-grid"></div>
+    <p class="small">Stored only in this browser. You can change it any time from the top bar.</p>
+    <button class="btn ghost" value="cancel">Close</button>
+  </form>
+</dialog>
+<div id="lightbox" hidden><img alt=""></div>
+<script src="../assets/js/site.js"></script>
+</body>
+</html>

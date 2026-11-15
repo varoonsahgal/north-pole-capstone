@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome, Cloud Elves · North Pole Cloud Capstone</title>
+<meta name="description" content="A two-mission, holiday-themed AWS capstone: containers, Terraform, serverless, CI/CD and Kubernetes.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="home" data-root="">
+<canvas id="snow" aria-hidden="true"></canvas>
+<header class="topbar">
+  <a class="brand" href="index.html"><span aria-hidden="true">🎄</span> North Pole <b>Cloud Capstone</b></a>
+  <nav aria-label="Main"><a href="index.html" class="on">Home</a><a href="capstone-1.html">Mission 1</a><a href="capstone-2.html">Mission 2</a><a href="guides/index.html">Field Guides</a></nav>
+  <div class="tools">
+    <button id="team-chip" class="chip" type="button" title="Change team">🦌 <span id="team-chip-name">Pick your team</span></button>
+    <button id="snow-toggle" class="chip icon" type="button" aria-pressed="true" title="Toggle snow">❄️</button>
+  </div>
+</header>
+<div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+<section class="hero">
+  <div class="moon"></div>
+  <div class="sleigh-fly" aria-hidden="true">🎅🛷🦌🦌🦌</div>
+  <span class="kicker">Cloud Foundations · Holiday Edition</span>
+  <h1>Save <em>Christmas</em> with the Cloud</h1>
+  <p class="lead">Santa's sleigh app runs on one dusty server under the workshop stairs. It is December. You are the new Cloud Elves. Two missions stand between the world and a very quiet Christmas morning.</p>
+  <div class="cta">
+    <a class="btn" href="capstone-1.html">🚀 Start Mission 1</a>
+    <a class="btn green" href="capstone-2.html">🏭 Mission 2</a>
+    <a class="btn gold" href="guides/index.html">📚 Field Guides</a>
+  </div>
+  <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".55"/>
+    <path d="M0 115 C 300 60, 520 150, 820 100 S 1250 70, 1440 110 V150 H0Z" fill="#fffaf0"/>
+  </svg>
+</section>
+<div class="snowbank"></div>
+
+<div class="wrap" style="margin-top:-30px">
+
+  <div class="team-banner needs-team">
+    <span>🦌 First things first: tell this site which reindeer team you are on. It fills your team name into every command.</span>
+    <button type="button" class="pick-team">Pick my team</button>
+  </div>
+
+  <section class="paper candy">
+    <h2>📜 Your briefing</h2>
+    <p><b>The situation.</b> Every gift that goes on the sleigh is tracked in an app called <b>Santa's Sleigh List</b>. Right now it lives on a single old computer in the workshop basement. Last night an elf spilled cocoa on it. It survived. Barely.</p>
+    <p><b>The plan.</b> Move the Sleigh List to AWS so that it survives cocoa, crashes and Christmas Eve traffic. You will work in <b>teams of about four</b>, and every team builds its own copy in the same AWS account at the same time.</p>
+    <div class="arch">
+      <div class="node hot"><span class="ico">🖥️</span>One old server<small>cocoa-damaged</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="ico">📦</span>Container<small>Docker + ECR</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="ico">🛷</span>3 copies on Fargate<small>behind a load balancer</small></div>
+      <div class="arrow">→</div>
+      <div class="node go"><span class="ico">🏭</span>A delivery factory<small>API + CI/CD + Kubernetes</small></div>
+    </div>
+    <p>Mission 1 is a guided flight. Mission 2 hands you the reins.</p>
+  </section>
+
+  <h2 class="section-title">Choose your mission</h2>
+  <div class="grid two">
+    <a class="card" href="capstone-1.html">
+      <span class="emoji">🚀</span>
+      <span class="meta">Mission 1 · Guided · One 3-hour session</span>
+      <h3>Operation Sleigh Launch</h3>
+      <p>Put the Sleigh List in a container, push it to a registry, and run three copies behind a load balancer on ECS Fargate. All of it described in Terraform, step by step, with the "why" behind every block.</p>
+      <span class="pill">Docker</span><span class="pill red">Terraform</span><span class="pill gold">ECR</span><span class="pill blue">ECS Fargate</span><span class="pill">Load balancer</span>
+    </a>
+    <a class="card green" href="capstone-2.html">
+      <span class="emoji">🏭</span>
+      <span class="meta">Mission 2 · You lead · About 10 hours as a team</span>
+      <h3>The North Pole Factory</h3>
+      <p>Build the machine that delivers the app for you: a serverless gift API, a CI/CD pipeline that deploys on every push, shared Terraform state, and a second home on Kubernetes. Fewer instructions, more hints.</p>
+      <span class="pill">Lambda</span><span class="pill red">API Gateway</span><span class="pill gold">CodePipeline</span><span class="pill blue">EKS</span><span class="pill">Team Terraform</span>
+    </a>
+  </div>
+
+  <h2 class="section-title">Your toolkit</h2>
+  <div class="grid">
+    <a class="card gold" href="guides/workshop.html">
+      <span class="emoji">🧰</span>
+      <h3>Santa's Workshop</h3>
+      <p>Your team's shared VS Code in the browser, with Docker and Terraform ready to go. (It replaces Cloud9, which AWS has retired.)</p>
+    </a>
+    <a class="card blue" href="guides/index.html">
+      <span class="emoji">📚</span>
+      <h3>Field Guides</h3>
+      <p>Step-by-step help with screenshots for when you are stuck in Mission 2: the API, the pipeline, Fargate, EKS and team Terraform.</p>
+    </a>
+    <a class="card green" href="guides/troubleshooting.html">
+      <span class="emoji">😈</span>
+      <h3>Grinch Field Guide</h3>
+      <p>The errors nearly every team meets, what they really mean, and how to get past them.</p>
+    </a>
+    <a class="card" href="guides/presentation.html">
+      <span class="emoji">🎤</span>
+      <h3>Present to Santa</h3>
+      <p>How to tell the story of what you built in ten minutes, to an audience that cares about decisions more than commands.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title">The elf code</h2>
+  <section class="paper">
+    <p>Four teams share one AWS account. These five rules keep everyone's work safe.</p>
+    <div class="table-wrap">
+    <table>
+      <tr><th>Rule</th><th>Why it matters</th></tr>
+      <tr><td><b>Your team name goes first.</b> Everything you create starts with it, for example <code>[[TEAM]]-cluster</code>.</td><td>Names must be unique inside one account. A prefix also tells you at a glance what is yours.</td></tr>
+      <tr><td><b>Stay in Oregon.</b> Use the <code>us-west-2</code> region for everything.</td><td>Resources in another region are invisible to your teammates and easy to forget (and keep paying for).</td></tr>
+      <tr><td><b>Touch only your own toys.</b> Never edit or delete a resource that carries another team's name.</td><td>Everyone here has administrator rights. That is a lot of trust.</td></tr>
+      <tr><td><b>No keys in code.</b> Never paste an AWS access key into a file or into GitHub.</td><td>Bots find leaked keys on GitHub within minutes. Your workshop already has safe, temporary credentials built in.</td></tr>
+      <tr><td><b>Leave no trace.</b> When a mission ends, run the <a href="guides/cleanup.html">cleanup</a>.</td><td>Load balancers and clusters cost money every hour they exist.</td></tr>
+    </table>
+    </div>
+    <h3>Four jobs on every team</h3>
+    <p>Swap jobs every time the page tells you to ring the rotation bell 🔔.</p>
+    <div class="roles">
+      <div class="role"><div class="ico">⌨️</div><h4>Driver</h4><p>Shares their screen and types. Types only what the team agrees on.</p></div>
+      <div class="role"><div class="ico">🧭</div><h4>Navigator</h4><p>Reads the instructions aloud and decides what happens next.</p></div>
+      <div class="role"><div class="ico">🔭</div><h4>Scout</h4><p>Keeps the AWS console open and confirms that each thing really appeared.</p></div>
+      <div class="role"><div class="ico">📓</div><h4>Scribe</h4><p>Watches the clock, takes screenshots and writes down every error and its fix.</p></div>
+    </div>
+  </section>
+</div>
+
+<footer class="foot">
+  <p>🎁 Built for the Cloud Foundations cohort · Be kind to the elves: tear down what you build.</p>
+  <p><a href="guides/cleanup.html">Cleanup guide</a> · <a href="guides/troubleshooting.html">Grinch field guide</a> · <a href="instructor.html">Instructor notes</a></p>
+</footer>
+<dialog id="team-dialog">
+  <form method="dialog">
+    <h2>🦌 Which reindeer team are you?</h2>
+    <p>Your instructor assigns the teams. Your pick personalises every command on this site, so teams never step on each other.</p>
+    <div class="team-grid" id="team-grid"></div>
+    <p class="small">Stored only in this browser. You can change it any time from the top bar.</p>
+    <button class="btn ghost" value="cancel">Close</button>
+  </form>
+</dialog>
+<div id="lightbox" hidden><img alt=""></div>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

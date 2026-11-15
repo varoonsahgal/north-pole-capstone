@@ -1,0 +1,247 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Santa's Workshop - a browser-based VS Code (code-server) on EC2 for one capstone team.
+  Replaces AWS Cloud9. Comes with Docker, Terraform, AWS CLI, kubectl, eksctl, helm and git.
+
+Parameters:
+  TeamName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9]{2,11}$"
+    ConstraintDescription: 3-12 characters, lowercase letters and digits, starting with a letter.
+  InstanceType:
+    Type: String
+    Default: t3.large
+  VolumeSizeGb:
+    Type: Number
+    Default: 40
+  CloudFrontPrefixListId:
+    Type: String
+    Description: ID of the managed prefix list com.amazonaws.global.cloudfront.origin-facing in this region.
+  LatestAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  WorkshopPassword:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${TeamName}-workshop-password"
+      Description: !Sub "Password for team ${TeamName}'s browser IDE"
+      GenerateSecretString:
+        PasswordLength: 20
+        ExcludePunctuation: true
+
+  WorkshopRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${TeamName}-workshop-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Training sandbox: the workshop gets the same power the students already have.
+        - arn:aws:iam::aws:policy/AdministratorAccess
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  WorkshopProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${TeamName}-workshop-profile"
+      Roles: [!Ref WorkshopRole]
+
+  WorkshopSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${TeamName}-workshop-sg"
+      GroupDescription: Only CloudFront may reach the IDE on port 8080
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourcePrefixListId: !Ref CloudFrontPrefixListId
+          Description: CloudFront origin-facing servers only
+
+  WorkshopAddress:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - { Key: Name, Value: !Sub "${TeamName}-workshop" }
+
+  WorkshopInstance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    Properties:
+      ImageId: !Ref LatestAmi
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref WorkshopProfile
+      SecurityGroupIds: [!GetAtt WorkshopSecurityGroup.GroupId]
+      MetadataOptions:
+        HttpTokens: required
+        HttpPutResponseHopLimit: 2
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref VolumeSizeGb
+            VolumeType: gp3
+            Encrypted: true
+      Tags:
+        - { Key: Name, Value: !Sub "${TeamName}-workshop" }
+        - { Key: Team, Value: !Ref TeamName }
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          exec > >(tee /var/log/workshop-setup.log) 2>&1
+          set -x
+          TEAM="${TeamName}"
+          REGION="${AWS::Region}"
+          finish() {
+            /opt/aws/bin/cfn-signal -e $1 --stack "${AWS::StackName}" --resource WorkshopInstance --region "$REGION"
+          }
+          trap 'finish 1' ERR
+          set -eE
+
+          TERRAFORM_VERSION=1.17.2
+          CODE_SERVER_VERSION=4.145.2
+          KUBECTL_VERSION=v1.34.2
+
+          dnf install -y docker git jq unzip tar gzip bash-completion
+          systemctl enable --now docker
+          usermod -aG docker ec2-user
+
+          # Docker buildx (modern builder) and compose plugins
+          mkdir -p /usr/libexec/docker/cli-plugins
+          curl -fsSL -o /usr/libexec/docker/cli-plugins/docker-buildx \
+            https://github.com/docker/buildx/releases/download/v0.19.3/buildx-v0.19.3.linux-amd64
+          chmod +x /usr/libexec/docker/cli-plugins/docker-buildx
+
+          # Terraform
+          curl -fsSL -o /tmp/terraform.zip \
+            "https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${!TERRAFORM_VERSION}_linux_amd64.zip"
+          unzip -o /tmp/terraform.zip terraform -d /usr/local/bin
+
+          # kubectl, eksctl, helm (used in Capstone 2)
+          curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
+          chmod +x /usr/local/bin/kubectl
+          curl -fsSL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /usr/local/bin
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | HOME=/root bash
+
+          # Shell environment for the team
+          cat > /etc/profile.d/workshop.sh <<PROFILE
+          export TEAM=$TEAM
+          export AWS_REGION=$REGION
+          export AWS_DEFAULT_REGION=$REGION
+          export AWS_PAGER=""
+          PROFILE
+          sed -i 's/^ *//' /etc/profile.d/workshop.sh
+          sudo -u ec2-user git config --global init.defaultBranch main
+          sudo -u ec2-user mkdir -p /home/ec2-user/workshop
+          cat > /home/ec2-user/workshop/WELCOME.md <<WELCOME
+          # Welcome to Santa's Workshop, Team $TEAM!
+
+          This is your team's shared cloud workbench. Everyone on the team can open the same URL.
+
+          - Open a terminal: Menu (top left) > Terminal > New Terminal
+          - Already installed: docker, terraform, aws, git, kubectl, eksctl, helm, jq
+          - You are already signed in to AWS (try: aws sts get-caller-identity)
+          - Your team name is in the TEAM variable (try: echo \$TEAM)
+          WELCOME
+          sed -i 's/^ *//' /home/ec2-user/workshop/WELCOME.md
+          chown -R ec2-user:ec2-user /home/ec2-user/workshop
+
+          # code-server = VS Code in the browser
+          export HOME=/root
+          curl -fsSL https://code-server.dev/install.sh | sh -s -- --version "$CODE_SERVER_VERSION"
+          PASSWORD="$(aws secretsmanager get-secret-value --secret-id "${WorkshopPassword}" --region "$REGION" --query SecretString --output text)"
+          sudo -u ec2-user mkdir -p /home/ec2-user/.config/code-server /home/ec2-user/.local/share/code-server/User
+          cat > /home/ec2-user/.config/code-server/config.yaml <<CONFIG
+          bind-addr: 0.0.0.0:8080
+          auth: password
+          password: $PASSWORD
+          cert: false
+          disable-telemetry: true
+          disable-update-check: true
+          disable-getting-started-override: true
+          CONFIG
+          sed -i 's/^ *//' /home/ec2-user/.config/code-server/config.yaml
+          cat > /home/ec2-user/.local/share/code-server/User/settings.json <<SETTINGS
+          {
+            "workbench.colorTheme": "Default Dark Modern",
+            "workbench.startupEditor": "none",
+            "security.workspace.trust.enabled": false,
+            "files.autoSave": "afterDelay",
+            "files.autoSaveDelay": 800,
+            "editor.fontSize": 14,
+            "terminal.integrated.fontSize": 14,
+            "terminal.integrated.gpuAcceleration": "off",
+            "terminal.integrated.defaultProfile.linux": "bash",
+            "terminal.integrated.profiles.linux": { "bash": { "path": "/bin/bash", "args": ["-l"] } },
+            "git.autofetch": false,
+            "chat.disableAIFeatures": true,
+            "chat.commandCenter.enabled": false,
+            "workbench.secondarySideBar.defaultVisibility": "hidden",
+            "workbench.tips.enabled": false,
+            "telemetry.telemetryLevel": "off"
+          }
+          SETTINGS
+          chown -R ec2-user:ec2-user /home/ec2-user/.config /home/ec2-user/.local
+          chmod 600 /home/ec2-user/.config/code-server/config.yaml
+          sudo -u ec2-user HOME=/home/ec2-user code-server --install-extension hashicorp.terraform || true
+          systemctl enable --now code-server@ec2-user
+
+          # Wait until the IDE answers before telling CloudFormation we are ready
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null http://localhost:8080/healthz && break
+            sleep 2
+          done
+          curl -fsS -o /dev/null http://localhost:8080/healthz
+          trap - ERR
+          finish 0
+
+  WorkshopAddressAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt WorkshopAddress.AllocationId
+      InstanceId: !Ref WorkshopInstance
+
+  WorkshopDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: WorkshopAddressAssociation
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${TeamName} workshop IDE"
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: workshop
+            # Public DNS name of the Elastic IP: ec2-1-2-3-4.<region>.compute.amazonaws.com
+            DomainName: !Sub
+              - "ec2-${DashedIp}.${AWS::Region}.compute.amazonaws.com"
+              - DashedIp: !Join ["-", !Split [".", !GetAtt WorkshopAddress.PublicIp]]
+            CustomOriginConfig:
+              HTTPPort: 8080
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 60
+        DefaultCacheBehavior:
+          TargetOriginId: workshop
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+          Compress: false
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # Managed: CachingDisabled
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3 # Managed: AllViewer
+
+Outputs:
+  WorkshopUrl:
+    Description: Open this in your browser (the whole team can share it)
+    Value: !Sub "https://${WorkshopDistribution.DomainName}/?folder=/home/ec2-user/workshop"
+  PasswordSecret:
+    Description: Name of the Secrets Manager secret that holds the IDE password
+    Value: !Sub "${TeamName}-workshop-password"
+  InstanceId:
+    Value: !Ref WorkshopInstance

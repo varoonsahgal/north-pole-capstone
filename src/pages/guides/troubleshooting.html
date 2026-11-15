@@ -1,0 +1,91 @@
+<!-- title: Grinch Field Guide | nav: guides | desc: Common errors in the capstone, what they really mean, and how to fix them. -->
+<section class="hero small-hero">
+  <span class="kicker">Field guide · Both missions</span>
+  <h1>The <em>Grinch</em> Field Guide</h1>
+  <p class="lead">These are the errors teams run into most. Find your symptom, read what it means, then fix it.</p>
+  {{hills}}
+</section>
+<div class="wrap narrow">
+  <section class="paper candy">
+    <h2>How to debug anything</h2>
+    <ol>
+      <li><b>Read the whole error.</b> The useful part is usually the last line, or the first line in red.</li>
+      <li><b>Ask what changed.</b> It worked five minutes ago. What did you do since?</li>
+      <li><b>Find the logs.</b> Every service keeps them. The table below says where.</li>
+      <li><b>Change one thing, then test.</b> If you change three things and it works, you have learned nothing.</li>
+      <li><b>Write it in the captain's log.</b> What you saw, what you guessed, what it really was.</li>
+    </ol>
+    <div class="table-wrap"><table>
+      <tr><th>Something is wrong with…</th><th>Look here</th></tr>
+      <tr><td>A container on ECS</td><td>ECS → cluster → service → <b>Tasks</b> → a stopped task → <b>Stopped reason</b>. Then the <b>Logs</b> tab.</td></tr>
+      <tr><td>The load balancer</td><td>EC2 → <b>Target groups</b> → your group → <b>Targets</b> → the "Health status details" column.</td></tr>
+      <tr><td>A Lambda function</td><td>Lambda → your function → <b>Monitor</b> → <b>View CloudWatch logs</b>.</td></tr>
+      <tr><td>API Gateway</td><td>Your method → <b>Test</b> tab. Read the log to the end.</td></tr>
+      <tr><td>A build</td><td>CodePipeline → the failed stage → <b>View logs</b>.</td></tr>
+      <tr><td>A pod</td><td><code>kubectl describe pod NAME</code> (Events at the bottom), then <code>kubectl logs NAME</code>.</td></tr>
+      <tr><td>The app in the browser</td><td>Press <kbd>F12</kbd>. <b>Console</b> tab for errors, <b>Network</b> tab for failed requests.</td></tr>
+    </table></div>
+  </section>
+
+  <section class="paper">
+    <h2>🐳 Docker</h2>
+    <details class="hint"><summary><code>toomanyrequests: You have reached your pull rate limit</code></summary><div class="hint-body"><p>Docker Hub limits downloads per IP address. Use Amazon's public copies of the same images in your <code>FROM</code> lines: <code>public.ecr.aws/docker/library/node:22-alpine</code> and <code>public.ecr.aws/nginx/nginx:1.27-alpine</code>.</p></div></details>
+    <details class="hint"><summary><code>Bind for 0.0.0.0:3000 failed: port is already allocated</code></summary><div class="hint-body"><p>An earlier container still holds the port. <code>docker ps</code> shows it. <code>docker rm -f NAME</code> removes it.</p></div></details>
+    <details class="hint"><summary><code>no basic auth credentials</code> or <code>denied</code> on push</summary><div class="hint-body"><p>Docker is not signed in to ECR, or the sign-in expired (it lasts 12 hours). Run the <code>aws ecr get-login-password | docker login …</code> line again. Check the image name starts with the full registry address.</p></div></details>
+    <details class="hint"><summary>I changed the code but the container shows the old version</summary><div class="hint-body"><p>The code is copied into the image at build time. Rebuild, remove the old container, and run a new one. Check with <code>docker ps</code> that the container you are looking at is the new one.</p></div></details>
+    <details class="hint"><summary><code>no space left on device</code></summary><div class="hint-body"><p><code>docker system prune -af</code> deletes unused images and build cache.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <h2>🧱 Terraform</h2>
+    <details class="hint"><summary><code>Network Configuration must be provided when networkMode 'awsvpc' is specified</code></summary><div class="hint-body"><p>Your ECS service has no <code>network_configuration</code> block. Fargate tasks need to be told which subnets to use. See Mission 1, step 7.</p></div></details>
+    <details class="hint"><summary><code>… already exists</code> (EntityAlreadyExists, ResourceAlreadyExistsException, BucketAlreadyOwnedByYou)</summary><div class="hint-body"><p>Something with that name exists and is not in your Terraform state. Usually it was made by hand, by a teammate from a different state file, or by another team using your prefix. Check the name and who made it. Delete the stray one, or use a different name.</p></div></details>
+    <details class="hint"><summary><code>No value for required variable</code>, or Terraform asks me to type the team name</summary><div class="hint-body"><p>Terraform cannot find <code>terraform.tfvars</code>. It must be in the folder where you run the command, and contain <code>team = "[[TEAM]]"</code>.</p></div></details>
+    <details class="hint"><summary><code>Error acquiring the state lock</code></summary><div class="hint-body"><p>A teammate is running Terraform right now, or a run crashed and left its lock behind. Ask the team. If nobody is running anything, <code>terraform force-unlock LOCK_ID</code> clears it (the ID is in the error).</p></div></details>
+    <details class="hint"><summary><code>Backend initialization required</code> or <code>Backend configuration changed</code></summary><div class="hint-body"><p>Run <code>terraform init</code> again, with the same <code>-backend-config</code> option as before.</p></div></details>
+    <details class="hint"><summary><code>terraform destroy</code> hangs for many minutes on a security group or subnet</summary><div class="hint-body"><p>Something that Terraform does not know about is still using it. The usual cause is a load balancer created by Kubernetes. Delete the Kubernetes service first (<code>kubectl delete service sleigh-list</code>).</p></div></details>
+    <details class="hint"><summary>The plan wants to destroy and recreate something I did not touch</summary><div class="hint-body"><p>Stop and read which attribute is marked <code># forces replacement</code>. Some settings, such as names, cannot be changed in place. If it surprises you, do not type yes. Ask.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <h2>🛷 ECS and the load balancer</h2>
+    <details class="hint"><summary>The browser cannot connect to the load balancer at all</summary><div class="hint-body"><p>Either there is no <b>listener</b> on port 80, or the load balancer's security group does not allow port 80 from <code>0.0.0.0/0</code>, or your browser changed the address to <code>https://</code>. Type <code>http://</code> yourself.</p></div></details>
+    <details class="hint"><summary><b>503 Service Temporarily Unavailable</b></summary><div class="hint-body"><p>The listener works, but the target group has no registered targets. Is the service connected to the target group (the <code>load_balancer</code> block)? Are any tasks running at all?</p></div></details>
+    <details class="hint"><summary><b>504 Gateway Time-out</b>, targets "unhealthy: Request timed out"</summary><div class="hint-body"><p>The load balancer cannot reach the tasks. The tasks' security group must allow port 3000 from the load balancer's security group. See Mission 1, step 8.</p></div></details>
+    <details class="hint"><summary>Targets "unhealthy: Health checks failed with these codes: [404]"</summary><div class="hint-body"><p>The load balancer reaches the container but asks for a page that is not there. The health check path should be <code>/health</code>, on port 3000.</p></div></details>
+    <details class="hint"><summary>Tasks stop with <code>CannotPullContainerError</code></summary><div class="hint-body"><p>The task could not download the image. Three causes, most likely first: <b>public IP is off</b> (a task in a public subnet needs one to reach ECR); the image address or tag is wrong; or no image has been pushed yet.</p></div></details>
+    <details class="hint"><summary>Tasks stop with <code>exec format error</code> in the logs</summary><div class="hint-body"><p>The image was built for a different kind of processor. An image built on an Apple Silicon laptop is ARM. Your task definition says X86_64. Build in the workshop or in CodeBuild, which are both x86.</p></div></details>
+    <details class="hint"><summary>Tasks start, run for a minute, and are replaced, forever</summary><div class="hint-body"><p>They are failing health checks. The service kills unhealthy tasks and tries again. Look at the target group's health details and fix that. The tasks themselves are fine.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <h2>⚡ Lambda and API Gateway</h2>
+    <details class="hint"><summary><code>AccessDenied … is not authorized to perform: s3:GetObject</code></summary><div class="hint-body"><p>The function's execution role may not read the object. Add a policy for <code>s3:GetObject</code> on <code>arn:aws:s3:::your-bucket/wishlist.json</code>. Check the bucket name in the code for typos too.</p></div></details>
+    <details class="hint"><summary><code>{"message": "Internal server error"}</code> from the API, but the Lambda test passes</summary><div class="hint-body"><p>Use the method's <b>Test</b> tab in API Gateway and read the end of the log. The API guide's deliberate mistake lives here, so no more will be said.</p></div></details>
+    <details class="hint"><summary><code>{"message": "Missing Authentication Token"}</code></summary><div class="hint-body"><p>A misleading message. It means "there is nothing at this path". You forgot <code>/gifts</code>, mistyped the stage name, or did not deploy the API after adding the method.</p></div></details>
+    <details class="hint"><summary><code>{"message": "Forbidden"}</code></summary><div class="hint-body"><p>The stage does not exist at that address. Check the Invoke URL on the Stages page.</p></div></details>
+    <details class="hint"><summary>I changed the API and nothing changed</summary><div class="hint-body"><p>API changes only go live when you choose <b>Deploy API</b>. Lambda code changes only go live when you choose <b>Deploy</b> in the code editor. Two different buttons.</p></div></details>
+    <details class="hint"><summary>The browser console says <code>blocked by CORS policy</code></summary><div class="hint-body"><p>The API's reply is missing the <code>Access-Control-Allow-Origin</code> header. With proxy integration, your function has to return it. See step 8 of the <a href="serverless-api.html">API guide</a>.</p></div></details>
+    <details class="hint"><summary><code>Unable to import module 'lambda_function'</code> or <code>Handler … not found</code></summary><div class="hint-body"><p>The handler setting must be <code>file_name.function_name</code>. For a file named <code>lambda_function.py</code> containing <code>def lambda_handler</code>, that is <code>lambda_function.lambda_handler</code>.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <h2>🚚 Pipeline</h2>
+    <details class="hint"><summary>The Source stage fails, or the connection is "Pending"</summary><div class="hint-body"><p>A connection has to be approved in the console by someone signed in to the GitHub account that owns the repository. Also check that the AWS Connector app was given access to <i>this</i> repository.</p></div></details>
+    <details class="hint"><summary>A push does not start the pipeline</summary><div class="hint-body"><p>Check the branch name in the Source stage. Is it <code>main</code>, and did you push to <code>main</code>? Did the push reach GitHub (look at the repository in a browser)?</p></div></details>
+    <details class="hint"><summary><code>Cannot connect to the Docker daemon</code></summary><div class="hint-body"><p>Turn on <b>Privileged</b> mode in the CodeBuild project's environment.</p></div></details>
+    <details class="hint"><summary><code>not authorized to perform: ecr:GetAuthorizationToken</code></summary><div class="hint-body"><p>Attach <code>AmazonEC2ContainerRegistryPowerUser</code> to the CodeBuild role.</p></div></details>
+    <details class="hint"><summary>Deploy fails: "did not contain a file named imagedefinitions.json" or "container name … not found"</summary><div class="hint-body"><p>The buildspec must write the file <i>and</i> list it under <code>artifacts</code>. The name inside it must equal the container name in the task definition.</p></div></details>
+    <details class="hint"><summary>The Deploy stage runs for ten minutes and then fails</summary><div class="hint-body"><p>The new tasks never became healthy, so ECS never finished the rollout. Debug it as an ECS problem: open the service and read why the new tasks stopped.</p></div></details>
+  </section>
+
+  <section class="paper">
+    <h2>☸️ Kubernetes</h2>
+    <details class="hint"><summary><code>You must be logged in to the server (Unauthorized)</code></summary><div class="hint-body"><p>The cluster does not know who you are. Whoever is running <code>kubectl</code> (your console user, or the CodeBuild role) needs an <b>EKS access entry</b>. See the <a href="deploy-eks.html">EKS guide</a>, steps 4 and 6.</p></div></details>
+    <details class="hint"><summary>Pods are <code>ImagePullBackOff</code> or <code>ErrImagePull</code></summary><div class="hint-body"><p>The image address in the Deployment is wrong. It needs the full ECR address and a tag that exists. If it says <code>IMAGE_PLACEHOLDER</code>, you applied the file by hand without replacing the placeholder.</p></div></details>
+    <details class="hint"><summary>Pods stay <code>Pending</code></summary><div class="hint-body"><p><code>kubectl describe pod</code> will say why. Usually there are no nodes ready yet (<code>kubectl get nodes</code>), or the nodes are full.</p></div></details>
+    <details class="hint"><summary>The service's EXTERNAL-IP says <code>&lt;pending&gt;</code> for a long time</summary><div class="hint-body"><p>A minute or two is normal. After five, run <code>kubectl describe service sleigh-list</code> and read the Events.</p></div></details>
+    <details class="hint"><summary>The load balancer address exists but does not answer</summary><div class="hint-body"><p>New load balancers need a couple of minutes for DNS. If it still fails, check that the Service's <code>selector</code> matches the pod labels exactly, and that <code>targetPort</code> is 3000.</p></div></details>
+    <details class="hint"><summary><code>eksctl create cluster</code> fails with a limit error</summary><div class="hint-body"><p>You probably ran it without <code>--vpc-public-subnets</code>, so it tried to build a new network. Delete the failed stacks with <code>eksctl delete cluster --name $TEAM-eks</code> and use the command from the EKS guide.</p></div></details>
+  </section>
+</div>
