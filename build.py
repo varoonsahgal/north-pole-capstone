@@ -70,6 +70,16 @@ HILLS = (
     '<path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/>'
     '<path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/></svg>'
 )
+PINES = (
+    '<svg class="pines" viewBox="0 0 1440 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true">'
+    + "".join(
+        '<g transform="translate(%d,%d) scale(%.2f)"><polygon points="0,-70 22,-30 -22,-30" fill="#0f8a5f"/>'
+        '<polygon points="0,-48 30,0 -30,0" fill="#0b6e4f"/><polygon points="0,-70 7,-57 -7,-57" fill="#fff" opacity=".85"/>'
+        '<rect x="-4" y="0" width="8" height="10" fill="#4a2c12"/></g>' % t
+        for t in [(70, 96, 1.0), (150, 104, .7), (300, 110, .85), (1130, 104, .8), (1250, 98, 1.05), (1360, 106, .7)]
+    )
+    + "</svg>"
+)
 
 
 def code_block(m):
@@ -117,7 +127,7 @@ def build():
         )
         out = LAYOUT.format(title=meta["title"], desc=meta.get("desc", ""), nav=meta.get("nav", ""), root=root,
                             navlinks=navlinks, lights=lights, body=body)
-        out = out.replace("{{hills}}", HILLS).replace("{{root}}", root)
+        out = out.replace("{{hills}}", PINES + HILLS).replace("{{pines}}", PINES).replace("{{root}}", root)
         dest = OUT / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(out)

@@ -4,6 +4,7 @@
   <span class="kicker">Mission 1 · Guided · 3 hours</span>
   <h1>Operation <em>Sleigh Launch</em></h1>
   <p class="lead">Take Santa's Sleigh List from one fragile server to three self-healing containers behind a load balancer. You will write every piece yourselves, and understand why it is there.</p>
+  {{pines}}
   <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true">
     <path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/>
     <path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/>
@@ -18,8 +19,13 @@
 
   <main>
     <div class="progress">
-      <div class="label"><span>🛷 Sleigh progress</span><span class="count"></span></div>
+      <div class="label"><span>🛷 Sleigh progress <span class="score"></span></span><span class="count"></span></div>
       <div class="track"><div class="fill"></div><span class="sled">🛷</span><span class="home">🏠</span></div>
+      <div class="clock">
+        <span>⏱ Mission clock</span><span class="time">0:00:00</span>
+        <button type="button" class="start">Start</button><button type="button" class="reset quiet" hidden>Reset</button>
+        <span class="pace"></span>
+      </div>
     </div>
 
     <div class="team-banner needs-team">
@@ -28,7 +34,7 @@
     </div>
 
     <!-- ============ STEP 0 ============ -->
-    <section class="paper candy step" id="assemble" data-short="Assemble the team">
+    <section class="paper candy step" id="assemble" data-min="10" data-short="Assemble the team">
       <div class="step-head"><div class="step-num">0</div><h2>Assemble the team</h2><span class="pill gold">⏱ 10 min</span></div>
       <p>By the end of this session, anyone on the internet will be able to open your team's Sleigh List, and it will keep running even if one of its servers disappears.</p>
 
@@ -65,6 +71,8 @@
         <tr><td>9 to 10</td><td>Victory lap, debrief, cleanup</td><td>20</td></tr>
       </table>
       </div>
+      <h3>The Reindeer Games</h3>
+      <p>Every step you finish is worth <b>10 points</b>. Along the way you will find gold-striped <b>Reindeer Games</b> boxes and green <b>Grinch drills</b>. They are optional challenges worth extra points. Do them if the mission clock says you are ahead. Skip them if you are behind. Your score is in the bar at the top, so you can compare with the other teams at the end.</p>
       <div class="callout team">
         <b class="t">Every name starts with your team name</b>
         <p>Four teams are building the same thing in one AWS account. Your resources are called <code>[[TEAM]]-something</code>. If you see a resource with another reindeer's name on it, leave it alone.</p>
@@ -73,7 +81,7 @@
     </section>
 
     <!-- ============ STEP 1 ============ -->
-    <section class="paper step" id="workshop" data-short="Open Santa's Workshop">
+    <section class="paper step" id="workshop" data-min="15" data-short="Open Santa's Workshop">
       <div class="step-head"><div class="step-num">1</div><h2>Open Santa's Workshop</h2><span class="pill gold">⏱ 15 min</span></div>
       <p>You need one shared computer in the cloud where the whole team can write code and run Docker and Terraform. We call it <b>Santa's Workshop</b>: VS Code running in your browser, on an EC2 server that belongs to your team.</p>
       <div class="callout why">
@@ -133,7 +141,7 @@ docker --version
     </section>
 
     <!-- ============ STEP 2 ============ -->
-    <section class="paper step" id="app" data-short="Meet the Sleigh List">
+    <section class="paper step" id="app" data-min="10" data-short="Meet the Sleigh List">
       <div class="step-head"><div class="step-num">2</div><h2>Meet the Sleigh List</h2><span class="pill gold">⏱ 10 min</span></div>
       <p>The app is a small React website. Get a copy of its code into your workshop.</p>
       <code-block lang="bash">
@@ -164,7 +172,7 @@ export const TEAM = "Team [[TEAM]]";
     </section>
 
     <!-- ============ STEP 3 ============ -->
-    <section class="paper step" id="docker" data-short="Wrap it in a container">
+    <section class="paper step" id="docker" data-min="25" data-short="Wrap it in a container">
       <div class="step-head"><div class="step-num">3</div><h2>Wrap it in a container</h2><span class="pill gold">⏱ 25 min</span></div>
       <p>A <b>container image</b> is a sealed box holding your app and everything it needs to run. If the box runs in your workshop, it will run the same way on AWS. A <code>Dockerfile</code> is the recipe for building that box.</p>
       <div class="callout why">
@@ -218,11 +226,21 @@ docker rm -f sleigh-test
         <p class="explain">Docker saves each step as a layer and reuses it if its inputs did not change. Dependencies change rarely; code changes all the time. Ordering it this way turns a one-minute rebuild into a few seconds. Try it: run the build command again and watch for the word <code>CACHED</code>.</p>
       </div>
       <div class="callout team"><b class="t">🔔 Rotation bell</b><p>Swap jobs. A new Driver shares their screen (same workshop URL, same password).</p></div>
+      <div class="bonus" data-id="xray" data-points="10"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Reindeer Games · optional</span><b>X-ray your image</b><span class="pts"></span></div>
+        <p>What is actually inside the box you just built?</p>
+        <code-block lang="bash">
+docker history sleigh-list
+docker run --rm sleigh-list ls -la /usr/share/nginx/html
+        </code-block>
+        <p>Answer as a team: Which single line of the Dockerfile added the most megabytes to the final image? Is your <code>src</code> folder or <code>node_modules</code> anywhere in it? Why is that good news for security?</p>
+        <label class="claim"><input type="checkbox"> We can answer all three questions</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> We built the image and saw our app at /proxy/3000/</label>
     </section>
 
     <!-- ============ STEP 4 ============ -->
-    <section class="paper step" id="terraform" data-short="First Terraform: a registry">
+    <section class="paper step" id="terraform" data-min="15" data-short="First Terraform: a registry">
       <div class="step-head"><div class="step-num">4</div><h2>First Terraform: a registry</h2><span class="pill gold">⏱ 15 min</span></div>
       <p>Your image exists only inside the workshop. AWS cannot run what it cannot reach. You need a <b>registry</b>: a place in the cloud to store images. On AWS that is <b>ECR</b> (Elastic Container Registry).</p>
       <p>You could click through the console to make one. Instead you will <i>describe</i> it in code and let Terraform create it. Infrastructure written as code can be reviewed, repeated, and destroyed cleanly.</p>
@@ -278,7 +296,7 @@ ecr_repository_url = "123456789012.dkr.ecr.us-west-2.amazonaws.com/[[TEAM]]-slei
     </section>
 
     <!-- ============ STEP 5 ============ -->
-    <section class="paper step" id="push" data-short="Ship the image to ECR">
+    <section class="paper step" id="push" data-min="10" data-short="Ship the image to ECR">
       <div class="step-head"><div class="step-num">5</div><h2>Ship the image to ECR</h2><span class="pill gold">⏱ 10 min</span></div>
       <p>Pushing an image takes three moves: sign Docker in to your registry, give the image its full address as a name, and push.</p>
       <code-block lang="bash">
@@ -302,11 +320,20 @@ docker push $REPO:latest
         <summary>It says "no basic auth credentials" or "denied"</summary>
         <div class="hint-body"><p>The login step did not work, or you opened a new terminal where <code>$REPO</code> is empty. Run all of the commands above again, in the same terminal, from the top.</p></div>
       </details>
+      <div class="bonus" data-id="digest" data-points="5"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Reindeer Games · optional</span><b>Fingerprints</b><span class="pts"></span></div>
+        <p>A tag such as <code>latest</code> is a sticky note. Anyone can move it to a different image. A <b>digest</b> is a fingerprint of the exact contents and can never point to anything else.</p>
+        <code-block lang="bash">
+docker images --digests | grep sleigh-list
+        </code-block>
+        <p>Find the same <code>sha256:…</code> value on your image in the ECR console. Then discuss: if you wanted to be certain which code is running in production, would you deploy by tag or by digest?</p>
+        <label class="claim"><input type="checkbox"> We matched the digest in ECR</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Our image is in ECR with the tag "latest"</label>
     </section>
 
     <!-- ============ STEP 6 ============ -->
-    <section class="paper step" id="task" data-short="A cluster and a task">
+    <section class="paper step" id="task" data-min="20" data-short="A cluster and a task">
       <div class="step-head"><div class="step-num">6</div><h2>A cluster and a task</h2><span class="pill gold">⏱ 20 min</span></div>
       <p><b>ECS</b> (Elastic Container Service) runs containers for you. It has three ideas, and you will build them in order:</p>
       <div class="arch">
@@ -355,7 +382,7 @@ terraform apply
     </section>
 
     <!-- ============ STEP 7 ============ -->
-    <section class="paper step" id="service" data-short="The service (first trap)">
+    <section class="paper step" id="service" data-min="20" data-short="The service (first trap)">
       <div class="step-head"><div class="step-num">7</div><h2>The service: keep three running</h2><span class="pill gold">⏱ 20 min</span></div>
       <p>A <b>service</b> is a promise: "keep this many copies of the task running". If one dies, the service starts a replacement without anyone waking up.</p>
       <p>Create <code>service.tf</code> with the smallest service that could possibly work:</p>
@@ -399,11 +426,20 @@ terraform apply
         <b class="t">Try to visit one</b>
         <p>Click a running task. Under <b>Configuration</b> it has a public IP. Try opening <code>http://that-ip:3000</code> in your browser. It will hang and time out. The container is running, but a firewall is in the way. Even if you got through, you would have three different addresses that change every time a task restarts. You need one stable front door.</p>
       </div>
+      <div class="bonus" data-id="diary" data-points="10"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Reindeer Games · optional</span><b>Read an elf's diary</b><span class="pts"></span></div>
+        <p>Everything a container prints ends up in the log group you created in step 6. Read it from the terminal:</p>
+        <code-block lang="bash">
+aws logs tail /ecs/$TEAM-sleigh-list --since 30m
+        </code-block>
+        <p>Find the three lines that say <code>this container is elf …</code>. Which file in the app's repository printed them? Which words in your task definition sent them to CloudWatch?</p>
+        <label class="claim"><input type="checkbox"> We found the three elves in the logs</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> We met the error, fixed it, and have 3 running tasks</label>
     </section>
 
     <!-- ============ STEP 8 ============ -->
-    <section class="paper step" id="alb" data-short="The front door (Grinch territory)">
+    <section class="paper step" id="alb" data-min="35" data-short="The front door (Grinch territory)">
       <div class="step-head"><div class="step-num">8</div><h2>The front door</h2><span class="pill gold">⏱ 35 min</span></div>
       <p>An <b>Application Load Balancer</b> (ALB) gives you one public address and spreads visitors across your healthy containers. It has four parts, and the Grinch has hidden a trap between each of them. That is on purpose: you will learn each part by seeing what breaks without it.</p>
       <div class="arch">
@@ -492,11 +528,16 @@ terraform output app_url
         <div class="hint-body"><p>Your address starts with <code>http://</code>, not <code>https://</code>. Some browsers switch to https by themselves, and you have no listener on port 443. Type the full address including <code>http://</code>. (Adding real HTTPS needs a domain name and a certificate. It is a good stretch goal for Mission 2.)</p></div>
       </details>
       <div class="callout team"><b class="t">🔔 Rotation bell</b><p>Last swap. The new Driver gets the fun part.</p></div>
+      <div class="bonus" data-id="draw" data-points="5"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Reindeer Games · optional</span><b>Draw the two firewalls</b><span class="pts"></span></div>
+        <p>On paper or a whiteboard, draw the internet, the load balancer, and one task. Draw each security group as a fence around the thing it protects. Add an arrow for every rule, labelled with its port and its source. Take a photo for your Scribe. This drawing is worth a slide in Mission 2.</p>
+        <label class="claim"><input type="checkbox"> Our drawing shows both fences and every arrow</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Our Sleigh List is live at the load balancer address</label>
     </section>
 
     <!-- ============ STEP 9 ============ -->
-    <section class="paper step" id="lap" data-short="Victory lap">
+    <section class="paper step" id="lap" data-min="10" data-short="Victory lap">
       <div class="step-head"><div class="step-num">9</div><h2>Victory lap</h2><span class="pill gold">⏱ 10 min</span></div>
       <p>You built it. Now prove to yourselves that it does what you promised Santa.</p>
       <h3>1. Meet your elves</h3>
@@ -530,11 +571,52 @@ terraform apply
         <button type="button">Terraform deletes the service</button>
         <p class="explain">Terraform compares your code with what really exists. Your code is the truth, and Terraform will pull reality back to match it. This is why teams agree: if it was made with Terraform, change it with Terraform.</p>
       </div>
+      <div class="bonus drill" data-id="drift" data-points="20"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Grinch drill · optional</span><b>The secret saboteur</b><span class="pts"></span></div>
+        <p><b>Scout only (do not tell the others what you did):</b> in the console open <b>EC2 → Security groups → <code>[[TEAM]]-tasks-sg</code> → Inbound rules → Edit inbound rules</b>, delete the port 3000 rule, and save.</p>
+        <p><b>Everyone else:</b> keep ringing the bell. Within a minute the app starts failing. Find out what changed <i>without</i> asking the Scout. You may use the target group page and exactly one Terraform command.</p>
+        <details class="hint"><summary>Which command?</summary><div class="hint-body"><p><code>terraform plan</code>. It compares your code with reality and prints the difference. Look for the <code>~</code> on the security group and a <code>+</code> next to the missing rule. Then <code>terraform apply</code> puts it back, and the targets heal on their own.</p></div></details>
+        <p>The word for what the Scout did is <b>drift</b>: reality moving away from the code. You have just detected it and repaired it in two commands.</p>
+        <label class="claim"><input type="checkbox"> We found the drift with terraform plan and healed it</label>
+      </div></div>
+      <div class="bonus" data-id="hardway" data-points="20"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Reindeer Games · optional</span><b>Ship a change the hard way</b><span class="pts"></span></div>
+        <p>Santa wants a new banner. Change <code>BANNER</code> in <code>~/workshop/sleigh-list/src/config.js</code> to anything you like, then get it live:</p>
+        <code-block lang="bash">
+cd ~/workshop/sleigh-list
+docker build -t sleigh-list .
+
+REPO=$(cd ~/workshop/infra && terraform output -raw ecr_repository_url)
+aws ecr get-login-password | docker login --username AWS --password-stdin ${REPO%%/*}
+docker tag sleigh-list:latest $REPO:latest
+docker push $REPO:latest
+
+# The image changed, but nothing told ECS. Ask it to restart the tasks with a fresh pull.
+aws ecs update-service --cluster $TEAM-cluster --service $TEAM-service --force-new-deployment --query 'service.deployments[0].rolloutState' --output text
+        </code-block>
+        <p>Keep ringing the bell for the next four or five minutes. You will see old elves and new elves answering side by side. That is a <b>rolling update</b>: new tasks start, pass their health checks, and only then are old ones stopped.</p>
+        <p>If you reload the whole page during the rollout and it comes up blank once, reload again. You received the page from a new elf and its JavaScript from an old one. Real sites avoid this with versioned file names on a CDN. It is a nice detail to mention in a design review.</p>
+        <p>Now count the manual steps it took to change one sentence, and imagine doing it ten times a day. Hold that thought until Mission 2.</p>
+        <label class="claim"><input type="checkbox"> Our new banner is live, and we counted the steps</label>
+      </div></div>
+      <div class="bonus" data-id="hunt" data-points="15"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Reindeer Games · optional</span><b>Scavenger hunt</b><span class="pts"></span></div>
+        <p>Find each answer in the console or with the CLI. Type them in (they are saved in this browser) and compare with another team.</p>
+        <ol class="hunt">
+          <li>The private IP address of one of your tasks <input type="text" aria-label="Answer 1"></li>
+          <li>The revision number of your task definition <input type="text" aria-label="Answer 2"></li>
+          <li>The number of availability zones your load balancer is in <input type="text" aria-label="Answer 3"></li>
+          <li>The compressed size of your image in ECR, in MB <input type="text" aria-label="Answer 4"></li>
+          <li>The ID of the security group on your load balancer <input type="text" aria-label="Answer 5"></li>
+          <li>How many resources <code>terraform state list</code> shows <input type="text" aria-label="Answer 6"></li>
+        </ol>
+        <label class="claim"><input type="checkbox"> We found all six</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> We met our elves, lost one, and hired two more</label>
     </section>
 
     <!-- ============ STEP 10 ============ -->
-    <section class="paper step" id="debrief" data-short="Debrief and clean up">
+    <section class="paper step" id="debrief" data-min="10" data-short="Debrief and clean up">
       <div class="step-head"><div class="step-num">10</div><h2>Debrief and clean up</h2><span class="pill gold">⏱ 10 min</span></div>
       <h3>Tell the story back</h3>
       <p>Go around the team. Each person explains one arrow of this picture in their own words. If someone gets stuck, that is the part to re-read before Mission 2.</p>
@@ -552,7 +634,7 @@ terraform apply
 cd ~/workshop/infra
 terraform destroy
       </code-block>
-      <p>Read the plan (it should say <b>12 to destroy</b>), then type <code>yes</code>. It takes about three minutes.</p>
+      <p>Read the plan (it should say <b>12 to destroy</b>, all of them yours), then type <code>yes</code>. It takes about three minutes.</p>
       <div class="callout warn">
         <b class="t">Keep the workshop</b>
         <p>Do <b>not</b> delete your Santa's Workshop. You will use it again in Mission 2, and your code lives there. Your instructor will tell you when it is time to remove it (see the <a href="guides/cleanup.html">cleanup guide</a>).</p>
@@ -568,7 +650,14 @@ terraform destroy
       <h2>🎄 Mission 1 complete!</h2>
       <p>The Sleigh List has left the basement. You containerized an app, stored it in a registry, ran it on Fargate across three zones, put a load balancer in front, debugged three real failures, and described all of it as code.</p>
       <p>Next, you stop delivering by hand and build the factory.</p>
-      <p><a class="btn green" href="capstone-2.html">🏭 On to Mission 2</a></p>
+      <div class="cert">
+        <p>This certifies that</p>
+        <div class="team">Team <span class="cert-team"></span></div>
+        <p>are officially</p>
+        <div class="big">Certified Cloud Elves</div>
+        <p>with a final score of <b><span class="cert-score"></span> points</b>. Screenshot this for your team chat.</p>
+      </div>
+      <p style="text-align:center"><a class="btn green" href="capstone-2.html">🏭 On to Mission 2</a></p>
     </section>
   </main>
 </div>

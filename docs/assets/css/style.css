@@ -259,3 +259,66 @@ dialog h2 { color: var(--berry); font-size: 36px; }
 }
 @media (prefers-reduced-motion: reduce) { .lights i, .sleigh-fly, .orn.lit { animation: none; } html { scroll-behavior: auto; } }
 @media print { #snow, .lights, .topbar, .toc, .progress, .foot, .copy { display: none !important; } body { background: #fff; } .paper { box-shadow: none; } }
+
+/* ===== review pass: polish, Reindeer Games, clock, certificate ===== */
+[hidden] { display: none !important; }
+.arch.col .arrow { transform: none; }
+.arch.col > .arrow { transform: rotate(90deg); }
+.arch .node { transition: transform .15s, box-shadow .15s; }
+.arch .node:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0, 0, 0, .35); }
+
+/* star field + pine trees in the hero */
+.hero::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .9;
+  background-image: radial-gradient(1.6px 1.6px at 12% 22%, #fff, transparent), radial-gradient(1.2px 1.2px at 28% 64%, #fff, transparent), radial-gradient(2px 2px at 44% 14%, #ffe9a8, transparent), radial-gradient(1.4px 1.4px at 63% 38%, #fff, transparent), radial-gradient(1.8px 1.8px at 78% 70%, #bfe6ff, transparent), radial-gradient(1.3px 1.3px at 91% 28%, #fff, transparent), radial-gradient(1.5px 1.5px at 6% 78%, #fff, transparent), radial-gradient(1.2px 1.2px at 54% 82%, #ffe9a8, transparent);
+  animation: stars 4s ease-in-out infinite alternate; }
+@keyframes stars { from { opacity: .45; } to { opacity: 1; } }
+.hero > * { position: relative; }
+.hero > .hills, .hero > .moon, .hero > .sleigh-fly, .hero > .pines { position: absolute; }
+.pines { left: 0; right: 0; bottom: 18px; height: 120px; width: 100%; pointer-events: none; }
+
+/* snow settled on top of every step card */
+.paper.step::before { content: ""; position: absolute; left: 22px; right: 22px; top: -11px; height: 22px; pointer-events: none;
+  background: radial-gradient(circle at 14px 16px, #fff 13px, transparent 14px) 0 0 / 28px 22px repeat-x; filter: drop-shadow(0 -2px 3px rgba(191, 230, 255, .5)); }
+.paper.step { margin-top: 34px; }
+.paper h2 { text-shadow: 1px 2px 0 rgba(163, 18, 42, .12); }
+.step-head { border-bottom: 2px dashed var(--line); padding-bottom: 14px; }
+.card { position: relative; overflow: hidden; }
+.card::after { content: ""; position: absolute; right: -30px; top: -30px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 207, 74, .28), transparent 70%); }
+.foot::before { content: "🎄 ❄️ 🦌 ❄️ 🎁 ❄️ 🦌 ❄️ 🎄"; display: block; letter-spacing: .5em; margin-bottom: 14px; opacity: .85; }
+.star.lit { animation: starpulse 1.4s ease-in-out infinite alternate; transform-origin: 110px 30px; }
+@keyframes starpulse { from { transform: scale(1); } to { transform: scale(1.18) rotate(6deg); } }
+
+/* Reindeer Games: optional scored challenges */
+.bonus { margin: 22px 0; border-radius: 16px; padding: 4px; background: repeating-linear-gradient(45deg, var(--gold) 0 12px, #fff 12px 24px); }
+.bonus-in { border-radius: 13px; padding: 16px 20px; background: #fffdf4; }
+.bonus-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.bonus-head b { font-size: 1.08em; color: #7a5600; flex: 1; min-width: 180px; }
+.bonus-head .tag { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #fff; background: var(--pine); border-radius: 999px; padding: 3px 11px; }
+.bonus-head .pts { font-weight: 800; color: var(--night); background: var(--gold); border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
+.bonus-in > :last-child { margin-bottom: 0; }
+.bonus label.claim { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-weight: 800; color: #7a5600; cursor: pointer; }
+.bonus label.claim input { width: 22px; height: 22px; accent-color: var(--gold-d); }
+.bonus.is-done .bonus-in { background: #fff6d6; }
+.bonus.drill { background: repeating-linear-gradient(45deg, #5a9c1a 0 12px, #fff 12px 24px); }
+.bonus.drill .bonus-head b { color: #2f5d06; } .bonus.drill .bonus-head .tag { background: #5a9c1a; }
+.score { font-weight: 800; color: var(--night); background: var(--gold); border-radius: 999px; padding: 2px 12px; margin-left: 8px; white-space: nowrap; }
+.tree-box .score { display: inline-block; margin: 8px 0 0; font-size: 15px; padding: 5px 16px; }
+
+/* mission clock */
+.clock { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .14); font-size: 14px; color: var(--ice); }
+.clock button { font: 800 13px var(--body); cursor: pointer; border: 0; border-radius: 999px; padding: 6px 14px; background: var(--mint); color: var(--night); }
+.clock button.quiet { background: rgba(255, 255, 255, .14); color: #fff; }
+.clock .time { font: 600 18px var(--mono); color: #fff; min-width: 5.5ch; }
+.clock .pace.behind { color: #ffb3bf; } .clock .pace.ahead { color: var(--mint); }
+
+/* certificate */
+.cert { margin: 22px auto 6px; max-width: 620px; text-align: center; padding: 26px 22px; border-radius: 14px; background: #fffdf4; border: 3px double var(--gold-d); outline: 8px solid #fff; box-shadow: 0 0 0 9px var(--gold-d); }
+.cert .big { font-family: var(--display); font-size: 40px; color: var(--berry); line-height: 1.1; }
+.cert .team { font-family: var(--display); font-size: 34px; color: var(--pine-d); text-transform: capitalize; }
+.cert p { margin: 6px 0; }
+
+/* scavenger hunt answers */
+.hunt { counter-reset: hunt; list-style: none; padding: 0; }
+.hunt li { counter-increment: hunt; padding: 8px 0 8px 40px; position: relative; border-bottom: 1px dashed var(--line); }
+.hunt li::before { content: "🔎"; position: absolute; left: 4px; }
+.hunt input { font: inherit; width: min(100%, 260px); margin-left: 8px; padding: 3px 8px; border: 2px solid var(--line); border-radius: 8px; background: #fff; }

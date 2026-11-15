@@ -66,6 +66,7 @@
         store("np-team", name);
         paintTeam();
         loadProgress();
+        document.dispatchEvent(new Event("np-team"));
         dialog.close();
         burst(["🦌", "❄️", "⭐"], 18);
       });
@@ -228,6 +229,7 @@
       store(progressKey(), JSON.stringify(saved));
       if (box.checked) burst(["❄️", "⭐", "🎁"], 12);
       paintProgress(true);
+      document.dispatchEvent(new Event("np-score"));
     });
   });
   document.querySelectorAll(".orn").forEach(function (orn) {
@@ -360,5 +362,102 @@
       setSnow(!snowing);
       store("np-snow", snowing ? "on" : "off");
     });
+  }
+})();
+
+/* ---------- Reindeer Games: bonus challenges, score, mission clock, certificate ---------- */
+(function () {
+  "use strict";
+  var PATH = location.pathname.split("/").slice(-2).join("/");
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function team() { return get("np-team") || "none"; }
+  function key(kind) { return "np-" + kind + ":" + PATH + ":" + team(); }
+
+  var bonuses = Array.prototype.slice.call(document.querySelectorAll(".bonus[data-id]"));
+  var STEP_POINTS = 10;
+
+  function paintScore() {
+    var steps = document.querySelectorAll(".step.is-done").length;
+    var total = steps * STEP_POINTS;
+    bonuses.forEach(function (b) {
+      if (b.classList.contains("is-done")) total += +b.dataset.points || 0;
+    });
+    document.querySelectorAll(".score").forEach(function (el) { el.textContent = "🏆 " + total + " pts"; });
+    document.querySelectorAll(".cert-score").forEach(function (el) { el.textContent = total; });
+    document.querySelectorAll(".cert-team").forEach(function (el) { el.textContent = team() === "none" ? "Reindeer" : team(); });
+  }
+  function loadBonus() {
+    var saved = {};
+    try { saved = JSON.parse(get(key("bonus")) || "{}"); } catch (e) {}
+    bonuses.forEach(function (b) {
+      var box = b.querySelector("label.claim input");
+      var on = !!saved[b.dataset.id];
+      if (box) box.checked = on;
+      b.classList.toggle("is-done", on);
+    });
+    document.querySelectorAll(".hunt input").forEach(function (inp, i) {
+      inp.value = get(key("hunt" + i)) || "";
+    });
+    paintScore();
+  }
+  bonuses.forEach(function (b) {
+    var head = b.querySelector(".pts");
+    if (head) head.textContent = "+" + b.dataset.points + " pts";
+    var box = b.querySelector("label.claim input");
+    if (!box) return;
+    box.addEventListener("change", function () {
+      b.classList.toggle("is-done", box.checked);
+      var saved = {};
+      bonuses.forEach(function (x) { if (x.classList.contains("is-done")) saved[x.dataset.id] = 1; });
+      set(key("bonus"), JSON.stringify(saved));
+      paintScore();
+    });
+  });
+  document.querySelectorAll(".hunt input").forEach(function (inp, i) {
+    inp.addEventListener("input", function () { set(key("hunt" + i), inp.value); });
+  });
+  document.addEventListener("np-score", paintScore);
+  document.addEventListener("np-team", function () { loadBonus(); paintClock(); });
+  loadBonus();
+
+  /* mission clock: elapsed time versus the planned pace */
+  var clock = document.querySelector(".clock");
+  var plan = Array.prototype.slice.call(document.querySelectorAll(".step[data-min]"));
+  function fmt(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+  }
+  function paintClock() {
+    if (!clock) return;
+    var started = +get(key("clock")) || 0;
+    var time = clock.querySelector(".time"), pace = clock.querySelector(".pace");
+    var startBtn = clock.querySelector(".start"), resetBtn = clock.querySelector(".reset");
+    startBtn.hidden = !!started;
+    resetBtn.hidden = !started;
+    if (!started) { time.textContent = "0:00:00"; pace.textContent = "Start the clock when your instructor says go."; pace.className = "pace"; return; }
+    var elapsedMin = (Date.now() - started) / 60000;
+    time.textContent = fmt(Date.now() - started);
+    var sum = 0, planned = plan[plan.length - 1];
+    for (var i = 0; i < plan.length; i++) { sum += +plan[i].dataset.min; if (elapsedMin < sum) { planned = plan[i]; break; } }
+    var current = null;
+    for (var j = 0; j < plan.length; j++) if (!plan[j].classList.contains("is-done")) { current = plan[j]; break; }
+    var pi = plan.indexOf(planned), ci = current ? plan.indexOf(current) : plan.length;
+    var name = planned.dataset.short || planned.id;
+    if (!current) { pace.textContent = "Mission complete!"; pace.className = "pace ahead"; }
+    else if (ci > pi) { pace.textContent = "Ahead of plan. Time for a bonus challenge?"; pace.className = "pace ahead"; }
+    else if (ci < pi) { pace.textContent = "The plan is at “" + name + "”. Pick up the pace, or skip the bonus challenges."; pace.className = "pace behind"; }
+    else { pace.textContent = "Right on plan: “" + name + "”."; pace.className = "pace"; }
+  }
+  if (clock) {
+    clock.querySelector(".start").addEventListener("click", function () { set(key("clock"), String(Date.now())); paintClock(); });
+    clock.querySelector(".reset").addEventListener("click", function () {
+      if (window.confirm && !window.confirm("Reset the mission clock?")) return;
+      del(key("clock")); paintClock();
+    });
+    paintClock();
+    setInterval(paintClock, 1000);
   }
 })();

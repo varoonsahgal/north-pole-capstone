@@ -28,6 +28,7 @@
   <span class="kicker">Mission 2 · You lead · About 10 hours</span>
   <h1>The North Pole <em>Factory</em></h1>
   <p class="lead">In Mission 1 you delivered one sleigh by hand. Now build the factory that delivers it for you, every time someone pushes code. This time the page tells you where to go, not how to get there.</p>
+  <svg class="pines" viewBox="0 0 1440 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><g transform="translate(70,96) scale(1.00)"><polygon points="0,-70 22,-30 -22,-30" fill="#0f8a5f"/><polygon points="0,-48 30,0 -30,0" fill="#0b6e4f"/><polygon points="0,-70 7,-57 -7,-57" fill="#fff" opacity=".85"/><rect x="-4" y="0" width="8" height="10" fill="#4a2c12"/></g><g transform="translate(150,104) scale(0.70)"><polygon points="0,-70 22,-30 -22,-30" fill="#0f8a5f"/><polygon points="0,-48 30,0 -30,0" fill="#0b6e4f"/><polygon points="0,-70 7,-57 -7,-57" fill="#fff" opacity=".85"/><rect x="-4" y="0" width="8" height="10" fill="#4a2c12"/></g><g transform="translate(300,110) scale(0.85)"><polygon points="0,-70 22,-30 -22,-30" fill="#0f8a5f"/><polygon points="0,-48 30,0 -30,0" fill="#0b6e4f"/><polygon points="0,-70 7,-57 -7,-57" fill="#fff" opacity=".85"/><rect x="-4" y="0" width="8" height="10" fill="#4a2c12"/></g><g transform="translate(1130,104) scale(0.80)"><polygon points="0,-70 22,-30 -22,-30" fill="#0f8a5f"/><polygon points="0,-48 30,0 -30,0" fill="#0b6e4f"/><polygon points="0,-70 7,-57 -7,-57" fill="#fff" opacity=".85"/><rect x="-4" y="0" width="8" height="10" fill="#4a2c12"/></g><g transform="translate(1250,98) scale(1.05)"><polygon points="0,-70 22,-30 -22,-30" fill="#0f8a5f"/><polygon points="0,-48 30,0 -30,0" fill="#0b6e4f"/><polygon points="0,-70 7,-57 -7,-57" fill="#fff" opacity=".85"/><rect x="-4" y="0" width="8" height="10" fill="#4a2c12"/></g><g transform="translate(1360,106) scale(0.70)"><polygon points="0,-70 22,-30 -22,-30" fill="#0f8a5f"/><polygon points="0,-48 30,0 -30,0" fill="#0b6e4f"/><polygon points="0,-70 7,-57 -7,-57" fill="#fff" opacity=".85"/><rect x="-4" y="0" width="8" height="10" fill="#4a2c12"/></g></svg>
   <svg class="hills" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true">
     <path d="M0 90 C 240 20, 420 130, 720 70 S 1200 20, 1440 80 V150 H0Z" fill="#dfeeff" opacity=".35"/>
     <path d="M0 125 C 300 80, 520 150, 820 110 S 1250 90, 1440 120 V150 H0Z" fill="#0b2447"/>
@@ -56,7 +57,8 @@
         <circle class="orn c4" data-i="9" cx="176" cy="240" r="9"><title>10 · Tell the story</title></circle>
       </svg>
       <div class="count"></div>
-      <p class="small" style="margin:.4em 0 0">Tick a goal below to light an ornament. Light all ten for the star.</p>
+      <div class="score"></div>
+      <p class="small" style="margin:.6em 0 0">Tick a goal to light an ornament (10 points). Side quests and Grinch drills earn extra. Light all ten for the star.</p>
     </div>
   </aside>
 
@@ -100,6 +102,7 @@
         <li><b>Hints are wrapped.</b> Each goal has hints inside gift boxes, from a gentle nudge to a strong push. Try for ten honest minutes before you unwrap one. Struggling a little is the point.</li>
         <li><b>Field guides exist.</b> If a whole area is new to you, the <a href="guides/index.html">field guides</a> walk through it with screenshots. They are a safety net, not the route.</li>
         <li><b>The Grinch has been busy.</b> Some things will fail on purpose. Each failure is a lesson someone paid for in production.</li>
+        <li><b>Side quests are optional.</b> The gold-striped boxes are harder challenges with no hints at all. They are worth extra points and make the best presentation stories. Finish the goal first.</li>
       </ul>
       <div class="callout team">
         <b class="t">The elf code still applies</b>
@@ -170,6 +173,11 @@
       <details class="hint"><summary>Hint: the Lambda test passes but the API returns "Internal server error"</summary><div class="hint-body"><p>The problem is between Lambda and API Gateway, so look there. In API Gateway, open your GET method and use the <b>Test</b> tab. Read the log it prints, right to the last lines. It names the problem exactly.</p></div></details>
       <details class="hint"><summary>Bigger hint: "Malformed Lambda proxy response"</summary><div class="hint-body"><p>With <i>Lambda proxy integration</i>, API Gateway expects a very particular reply: a <code>statusCode</code>, optional <code>headers</code>, and a <code>body</code> that is a <b>string</b>. Check what type your function's <code>body</code> is. Python has a one-line way to turn a list into a JSON string.</p></div></details>
       <details class="hint"><summary>Hint: bucket names</summary><div class="hint-body"><p>S3 bucket names are unique across <i>all of AWS</i>, not just your account. <code>[[TEAM]]-wishlist</code> is probably taken. Add your account number to the end.</p></div></details>
+      <div class="bonus" data-id="one-gift" data-points="15"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>One gift, please</b><span class="pts"></span></div>
+        <p>Add a second address to your API: <code>GET /gifts/3</code> returns only the gift with id 3, and an id that does not exist returns a proper <b>404</b> with a helpful message. One function or two? Your call. Be ready to defend it.</p>
+        <label class="claim"><input type="checkbox"> /gifts/3 returns one gift and /gifts/999 returns a 404</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 2 done: our API returns the gift list</label>
     </section>
 
@@ -191,6 +199,12 @@
       <details class="hint"><summary>Nudge: the API works in a browser tab but not from the app</summary><div class="hint-body"><p>When you type an address into the address bar, the browser simply fetches it. When JavaScript on <i>one</i> website asks for data from a <i>different</i> website, the browser first checks whether the other site allows it. Your API has not said that it does.</p></div></details>
       <details class="hint"><summary>Hint: what the browser wants to see</summary><div class="hint-body"><p>The reply from your API needs a header called <code>Access-Control-Allow-Origin</code>. With Lambda proxy integration, API Gateway passes through whatever headers your <b>function</b> returns. So the fix is in your Lambda code, in the same dictionary as <code>statusCode</code>.</p></div></details>
       <details class="hint"><summary>Hint: I changed config.js and nothing changed</summary><div class="hint-body"><p><code>config.js</code> is baked into the image when it is built. Did you rebuild the image and start a new container? Is an old container still holding port 3000 (<code>docker ps</code>)? Did your browser cache the old page (try a private window)?</p></div></details>
+      <div class="bonus" data-id="runtime-config" data-points="20"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>One image, any API</b><span class="pts"></span></div>
+        <p>Right now the API address is baked into the image at build time. If the address changes, you must rebuild. Real teams build <b>one</b> image and run it everywhere, with settings supplied when the container <i>starts</i>.</p>
+        <p>Make the container read the API address from an <b>environment variable</b> at start-up. (You already have a script that runs at start-up and writes a file the page reads. That is a strong clue.) Prove it by running the same image twice with two different addresses.</p>
+        <label class="claim"><input type="checkbox"> The same image shows different data depending on an environment variable</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 3 done: the app loads gifts from our API</label>
     </section>
 
@@ -206,6 +220,11 @@
       <details class="hint"><summary>Nudge</summary><div class="hint-body"><p>Two stages: one that builds, one that serves. The serve stage needs three things copied in: the nginx config, the elf script, and the built site.</p></div></details>
       <details class="hint"><summary>Hint: "toomanyrequests: You have reached your pull rate limit"</summary><div class="hint-body"><p>Docker Hub limits anonymous downloads, and four teams plus a build service share very few IP addresses. Use base images from Amazon's public registry instead: <code>public.ecr.aws/docker/library/node:22-alpine</code> and <code>public.ecr.aws/nginx/nginx:1.27-alpine</code>.</p></div></details>
       <details class="hint"><summary>Hint: I forgot the push commands</summary><div class="hint-body"><p>In the ECR console, open your repository and click <b>View push commands</b>. AWS writes them out for you.</p></div></details>
+      <div class="bonus" data-id="scan" data-points="10"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>Is it safe to ship?</b><span class="pts"></span></div>
+        <p>Turn on <b>scan on push</b> for your ECR repository, push an image, and read the findings. How many are there, and how severe is the worst? What would you do about it? Then rebuild using an older nginx base image tag and compare.</p>
+        <label class="claim"><input type="checkbox"> We can show our scan findings and explain the worst one</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 4 done: Dockerfile in git, image in ECR</label>
     </section>
 
@@ -233,6 +252,11 @@
         </ul></div></details>
       <details class="hint"><summary>Hint: tasks keep stopping</summary><div class="hint-body"><p>Click a stopped task and read <b>Stopped reason</b>. "CannotPullContainerError" is about reaching ECR (public IP, or the wrong image address). "Task failed ELB health checks" is about the firewall or the health check path. The <a href="guides/troubleshooting.html">Grinch field guide</a> has more.</p></div></details>
       <p>Need the full walk-through? See the <a href="guides/deploy-fargate.html">Fargate field guide</a>.</p>
+      <div class="bonus drill" data-id="lights-out" data-points="10"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Grinch drill · optional</span><b>Lights out</b><span class="pts"></span></div>
+        <p>Stop one running task from the console. Start a stopwatch. How long until the service is back to full strength, and did the app ever stop answering? Write the number down. You will run the same experiment on Kubernetes in goal 8 and compare.</p>
+        <label class="claim"><input type="checkbox"> We timed the recovery</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 5 done: our app runs on ECS, built by hand</label>
     </section>
 
@@ -265,6 +289,17 @@
       <details class="hint"><summary>Hint: showing the commit in the app's footer</summary><div class="hint-body"><p>The Dockerfile accepts a build argument called <code>BUILD_ID</code>. CodeBuild provides the commit in the variable <code>CODEBUILD_RESOLVED_SOURCE_VERSION</code>. Tagging the image with the short commit as well as <code>latest</code> is a good habit: you can always tell what is running.</p></div></details>
       <details class="hint"><summary>Hint: the connection says "Pending"</summary><div class="hint-body"><p>A connection to GitHub has to be approved by a human in the console: select it and choose <b>Update pending connection</b>. The person doing it must be signed in to the GitHub account that owns your repository.</p></div></details>
       <p>Full walk-throughs: <a href="guides/cicd-pipeline.html">CI/CD pipeline</a> and <a href="guides/deploy-fargate.html">auto-deploy to Fargate</a>.</p>
+      <div class="bonus" data-id="quality-gate" data-points="20"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>The quality gate</b><span class="pts"></span></div>
+        <p>A pipeline that ships broken images quickly is not an improvement. Add a check to your build: after building the image, <b>run it</b> inside CodeBuild, call <code>/health</code>, and fail the build if the answer is not <code>ok</code>. Do this <i>before</i> the push.</p>
+        <p>Prove it works: break <code>docker/nginx.conf</code> on purpose, push, and watch the pipeline stop while the live app stays up on the old version.</p>
+        <label class="claim"><input type="checkbox"> A broken commit fails the build and never reaches production</label>
+      </div></div>
+      <div class="bonus" data-id="approval" data-points="10"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>Santa signs off</b><span class="pts"></span></div>
+        <p>Add a <b>manual approval</b> step between Build and Deploy, so a human has to click Approve before production changes. When would you want this? When would it just slow you down?</p>
+        <label class="claim"><input type="checkbox"> Our pipeline waits for an approval</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 6 done: a git push changes the live app</label>
     </section>
 
@@ -295,6 +330,16 @@
       <details class="hint"><summary>Hint: keeping secrets out</summary><div class="hint-body"><p>The best secret is one that does not exist. Your workshop and your build project use IAM <b>roles</b>, so there are no AWS keys to hide. Add <code>*.tfstate*</code> and <code>.terraform/</code> to <code>.gitignore</code> before your first commit, because state files can contain sensitive values. If you ever do need a real secret, such as a database password, keep it in AWS Secrets Manager and let Terraform read it from there.</p></div></details>
       <details class="hint"><summary>Hint: the GitHub connection in Terraform</summary><div class="hint-body"><p>Terraform can create the connection (<code>aws_codeconnections_connection</code>), but it is always born <b>Pending</b>. A human still has to approve it once in the console. That is by design: code should not be able to grant itself access to your GitHub account.</p></div></details>
       <p>Full walk-through: <a href="guides/terraform-team.html">Terraform for teams</a>.</p>
+      <div class="bonus" data-id="twins" data-points="25"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>Twins</b><span class="pts"></span></div>
+        <p>Use the <b>same</b> Terraform code to create a second, completely separate copy of your factory: a <code>dev</code> environment next to your <code>prod</code> one. Nothing may be copied and pasted. Think about names, about state, and about what should differ between the two (three tasks in prod, one in dev?).</p>
+        <label class="claim"><input type="checkbox"> Two environments, one codebase, two state files</label>
+      </div></div>
+      <div class="bonus" data-id="no-paste" data-points="15"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>No more copy and paste</b><span class="pts"></span></div>
+        <p>When the API is recreated its address changes, and a human has to paste the new one into <code>config.js</code>. Remove that human. Terraform already knows the address. Find a way to get it from Terraform to the running app automatically. (This pairs well with the "One image, any API" side quest.)</p>
+        <label class="claim"><input type="checkbox"> Destroy and apply, and the app finds the new API by itself</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 7 done: destroy, apply, push, and the factory is back</label>
     </section>
 
@@ -328,6 +373,12 @@
       <details class="hint"><summary>Hint: getting a public address</summary><div class="hint-body"><p>A Service of <code>type: LoadBalancer</code> asks AWS for a load balancer. Its <code>port</code> is what the world uses (80). Its <code>targetPort</code> is what your container listens on (you know this number). The address appears under EXTERNAL-IP in <code>kubectl get service</code> and needs a minute or two to start answering.</p></div></details>
       <details class="hint"><summary>Hint: pods stuck in ImagePullBackOff or Pending</summary><div class="hint-body"><p>Run <code>kubectl describe pod &lt;name&gt;</code> and read the <b>Events</b> at the bottom. ImagePullBackOff is nearly always a typo in the image address. Use the full ECR address including the tag.</p></div></details>
       <details class="hint"><summary>Hint: the EKS console says "Error loading resources"</summary><div class="hint-body"><p>Being an AWS administrator does not make you a Kubernetes administrator. The cluster only knows the identity that created it, which was your workshop's role. Your personal console user is a stranger to it. Look up <b>EKS access entries</b> to introduce yourself. Until then, <code>kubectl</code> from the workshop works fine.</p></div></details>
+      <div class="bonus drill" data-id="undo" data-points="15"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Grinch drill · optional</span><b>Undo!</b><span class="pts"></span></div>
+        <p>Deploy an image tag that does not exist, on purpose. Watch what Kubernetes does with your three healthy pods (<code>kubectl get pods -w</code>). Is the app down? Now roll back with a single command, without editing any file.</p>
+        <p>Then find out: what would ECS have done in the same situation? (Look up the <b>deployment circuit breaker</b>.)</p>
+        <label class="claim"><input type="checkbox"> We broke a rollout, the app stayed up, and we rolled back in one command</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 8 done: our app runs on Kubernetes</label>
     </section>
 
@@ -348,6 +399,11 @@
       <details class="hint"><summary>Hint: "error: You must be logged in to the server" or "Unauthorized"</summary><div class="hint-body"><p>Two separate locks. First, the build role needs the IAM permission <code>eks:DescribeCluster</code> so that <code>aws eks update-kubeconfig</code> can find the cluster. Second, the cluster itself must be told to trust that role: create an <b>access entry</b> for the CodeBuild role and associate a cluster access policy with it.</p></div></details>
       <details class="hint"><summary>Hint: making the manifest follow the build</summary><div class="hint-body"><p>One simple way: put a placeholder word in <code>deployment.yaml</code> where the image goes, and have the build replace it with the real address using <code>sed</code> before piping the result to <code>kubectl apply -f -</code>. Finish with <code>kubectl rollout status</code> so the build fails if the rollout fails.</p></div></details>
       <p>Full walk-through: <a href="guides/deploy-eks.html">EKS field guide</a>.</p>
+      <div class="bonus" data-id="small-key" data-points="15"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Side quest · optional</span><b>A smaller key</b><span class="pts"></span></div>
+        <p>Your build role is probably a full cluster administrator. It only needs to update one Deployment and one Service in one namespace. Shrink its access to the smallest thing that still lets the pipeline pass, and show what it can no longer do.</p>
+        <label class="claim"><input type="checkbox"> Our build role cannot touch anything outside its namespace</label>
+      </div></div>
       <label class="done-row"><input type="checkbox"> Goal 9 done: one push updates ECS and Kubernetes</label>
     </section>
 
@@ -372,16 +428,50 @@
       <p>You built a serverless API, a container pipeline, infrastructure as code with shared state, and deployed to two orchestrators. That is a real platform, built by your team. Santa is delighted. Mrs. Claus is already asking about autoscaling.</p>
     </section>
 
+
+    <section class="paper">
+      <h2>😈 Grinch Game Day</h2>
+      <p>Once your pipeline works (after goal 6 or 7), spend thirty minutes on the most valuable exercise real operations teams run: <b>break your own system on purpose and practise fixing it.</b></p>
+      <ol class="do">
+        <li>Choose a <b>Grinch</b>. Everyone else leaves the call for two minutes or looks away.</li>
+        <li>The Grinch secretly breaks <b>one</b> thing in <b>your own team's</b> stack. Ideas are in the box below.</li>
+        <li>Start a stopwatch. The rest of the team may use the console, logs, <code>kubectl</code> and <code>terraform plan</code>, but may not ask the Grinch anything.</li>
+        <li>Scribe: record the <b>time to notice</b>, the <b>time to find the cause</b> and the <b>time to fix</b>.</li>
+        <li>Swap the Grinch and go again.</li>
+      </ol>
+      <details class="hint"><summary>For the Grinch's eyes only: things to break</summary><div class="hint-body">
+        <ul>
+          <li>Remove the S3 permission from the Lambda function's role.</li>
+          <li>Delete the <code>Access-Control-Allow-Origin</code> header from the function and deploy it.</li>
+          <li>Delete the inbound rule on the tasks' security group.</li>
+          <li>Set the ECS service's desired count to 0 in the console.</li>
+          <li>Turn off Privileged mode on the build project, then push a commit.</li>
+          <li>Rename <code>CONTAINER_NAME</code> in the build project's environment variables.</li>
+          <li>Change the Kubernetes Service's selector so it matches no pods.</li>
+          <li>Delete the build role's EKS access entry, then push a commit.</li>
+        </ul>
+      </div></details>
+      <div class="callout warn"><p><b>Two rules.</b> Only break things that belong to your own team. And never break something you could not rebuild: no deleting the state bucket, the cluster or the workshop.</p></div>
+      <div class="bonus drill" data-id="gameday" data-points="30"><div class="bonus-in">
+        <div class="bonus-head"><span class="tag">Grinch drill · optional</span><b>Two rounds of Game Day</b><span class="pts"></span></div>
+        <p>Play at least two rounds with two different Grinches. Which failure took longest to find, and what would have made it faster? (That question is a ready-made slide.)</p>
+        <label class="claim"><input type="checkbox"> We played two rounds and wrote down our times</label>
+      </div></div>
+    </section>
     <section class="paper">
       <h2>🌟 Gold star challenges</h2>
-      <p>Finished early? These are optional and get no hints. Pick the one that scares you most.</p>
+      <p>Finished early? These are optional and get no hints and no points, only glory. Pick the one that scares you most.</p>
       <ul>
         <li><b>Terraform from the pipeline.</b> Add a stage that runs <code>terraform apply</code>, so infrastructure changes are delivered the same way as app changes. What should require a human approval?</li>
         <li><b>Your own build image.</b> Installing tools on every build wastes a minute or two. Create a custom CodeBuild image with Terraform already inside, store it in ECR, and use it.</li>
         <li><b>A proper front door for Kubernetes.</b> Replace the simple load balancer with an <b>Ingress</b> and the AWS Load Balancer Controller.</li>
         <li><b>The cluster as code.</b> Describe your EKS cluster in Terraform instead of creating it with <code>eksctl</code>.</li>
         <li><b>Elves on demand.</b> Add autoscaling to the ECS service or the Kubernetes deployment, then prove that it works.</li>
-        <li><b>Write, not just read.</b> Make the app save a new gift: a second API method, a second Lambda function, and somewhere to store it.</li>
+        <li><b>Write, not just read.</b> Make the app save a new gift: a second API method, a second Lambda function, and somewhere to store it. (DynamoDB suits this better than a file in S3. Why?)</li>
+        <li><b>Wake someone up.</b> Create a CloudWatch alarm that sends an email when your load balancer has any unhealthy target. Prove it with a Grinch drill.</li>
+        <li><b>One screen to rule them all.</b> Build a CloudWatch dashboard that shows requests, errors and latency for the API, the load balancer and the function side by side.</li>
+        <li><b>Blue and green.</b> Replace the rolling update on ECS with a blue/green deployment, so that a bad release can be reversed in seconds.</li>
+        <li><b>Keep the bots out.</b> Put a rate limit in front of the API (a usage plan, or stage throttling) and show what a client sees when it is exceeded.</li>
       </ul>
     </section>
   </main>
