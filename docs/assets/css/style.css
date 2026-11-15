@@ -322,3 +322,5 @@ dialog h2 { color: var(--berry); font-size: 36px; }
 .hunt li { counter-increment: hunt; padding: 8px 0 8px 40px; position: relative; border-bottom: 1px dashed var(--line); }
 .hunt li::before { content: "🔎"; position: absolute; left: 4px; }
 .hunt input { font: inherit; width: min(100%, 260px); margin-left: 8px; padding: 3px 8px; border: 2px solid var(--line); border-radius: 8px; background: #fff; }
+
+.pines { bottom: 58px; }
